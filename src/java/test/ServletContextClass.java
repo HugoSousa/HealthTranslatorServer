@@ -18,14 +18,14 @@ import javax.servlet.ServletContextListener;
  * @author Hugo
  */
 public class ServletContextClass implements ServletContextListener{
-    public static Connection conn;
+    //public static Connection conn;
     
     public static Connection conn_MySQL;
 
     public void contextInitialized(ServletContextEvent arg0) 
     {
         System.out.println("CONTEXT INITIALIZED HERE!");
-        
+        /*
         try {
             Class.forName("org.postgresql.Driver");
             String url = "jdbc:postgresql://localhost/healthtranslator";
@@ -37,11 +37,11 @@ public class ServletContextClass implements ServletContextListener{
             e.printStackTrace();
             System.exit(2);
         }
-        
+        */
         
         try {
             Class.forName("com.mysql.jdbc.Driver");
-            String url = "jdbc:mysql://localhost/umls_test";
+            String url = "jdbc:mysql://localhost/umls_en";
             conn_MySQL = DriverManager.getConnection(url, "root", "");
            
         } catch (ClassNotFoundException e) {
@@ -54,15 +54,15 @@ public class ServletContextClass implements ServletContextListener{
         
         //System.out.println("RETURNING CONN");
         //System.out.println("conn: " + conn);
-        System.out.println("CONN MYSQL " + conn_MySQL);
+        //System.out.println("CONN MYSQL " + conn_MySQL);
     }
 
 
     public void contextDestroyed(ServletContextEvent arg0) 
     {
         try {       
-            if(conn != null)
-                conn.close();
+            if(conn_MySQL != null)
+                conn_MySQL.close();
         } catch (SQLException ex) {
             Logger.getLogger(ServletContextClass.class.getName()).log(Level.SEVERE, null, ex);
         }

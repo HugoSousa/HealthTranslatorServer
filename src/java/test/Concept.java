@@ -15,6 +15,11 @@ public class Concept {
     public String string;
     public Span span;
     public int row;
+    public String CUI;
+    
+    public String definition;
+    public String CHVPreferred;
+   
     
     public Concept(){}
     
