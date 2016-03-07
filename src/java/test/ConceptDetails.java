@@ -10,7 +10,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
-import org.json.simple.JSONObject;
 
 /**
  *
@@ -29,9 +28,6 @@ public class ConceptDetails {
         
         String concept = param.getBody();
         
-        JSONObject obj = new JSONObject();
-        obj.put("result", "teste");
-        
-        return Response.status(200).entity(obj.toString()).build();
+        return Response.status(200).entity(null).build();
     }
 }

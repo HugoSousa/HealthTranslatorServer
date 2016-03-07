@@ -5,6 +5,10 @@
  */
 package test;
 
+import com.cybozu.labs.langdetect.Detector;
+import com.cybozu.labs.langdetect.DetectorFactory;
+import com.cybozu.labs.langdetect.LangDetectException;
+import com.cybozu.labs.langdetect.Language;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,13 +35,11 @@ import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.Produces;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.core.Response;
 import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
 import org.jactiveresource.Inflector;
-import org.json.simple.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.DataNode;
 import org.jsoup.nodes.Document;
@@ -70,12 +72,18 @@ public class Processor {
     private TokenizerModel modelEN;
 
     private final int FORWARD_THRESHOLD = 5;
+    
+    //number of text chunks bigger than THRESHOLD_TEXT_SIZE that are extracted for language detection
+    private int THRESHOLD_TEXT_DETECTION = 3; 
+    
+    //size of the text that is considered as a chunk to be used in language detection
+    private int THRESHOLD_TEXT_SIZE = 100;
 
     /**
-     * Creates a new instance of TestResource
+     * Creates a new instance of Processor
      */
     public Processor() {
-        System.out.println("Hello there :)");
+        System.out.println("Processor constructor");
         Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
         punctuationMatcher = punctuationPattern.matcher("");
@@ -108,6 +116,8 @@ public class Processor {
     @PostConstruct
     public void preLoad() {
 
+        System.out.println("Processor preload");    
+        
         InputStream is = servletContext.getResourceAsStream("/WEB-INF/models/en-token.bin");
         TokenizerModel model = null;
         try {
@@ -137,8 +147,36 @@ public class Processor {
         } catch (Exception e) {
             System.out.println(e);
         }
-
-        //System.out.println("STOPWORDS: " + stopwordsEN);
+        
+        /*
+        is = servletContext.getResourceAsStream("/WEB-INF/language-profiles/en");
+        File f = new File(servletContext.getContextPath(), "name");
+        String fileText = "";
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                fileText += line;
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+          
+        try {
+            FileUtils.writeStringToFile(f, fileText);
+        } catch (IOException ex) {
+            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        */
+        try {
+            long startTime = System.nanoTime();
+            String directory = servletContext.getRealPath("/") + "/WEB-INF/language-profiles/";
+            DetectorFactory.loadProfile(directory);
+            long endTime = System.nanoTime();
+            long duration = (endTime - startTime) / 1000000;
+            System.out.println("LOAD PROFILES: " + duration + " ms");
+        } catch (LangDetectException ex) {
+            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     /**
@@ -150,8 +188,8 @@ public class Processor {
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public Response test(BodyMessage param) {
-
+    public ProcessResult test(BodyMessage param) {
+        System.out.println("Starting test");
         //System.out.println("cenas: " + param.getBody());
         /*
          long startTime = System.nanoTime();
@@ -161,11 +199,11 @@ public class Processor {
          System.out.println("V1 - DURATION: " + duration + " ms");
          */
         long startTime = System.nanoTime();
-        String result = processDocumentV2(param.getBody());
+        ProcessResult result = processDocumentV2(param.getBody());
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("V2 - DURATION: " + duration + " ms");
-
+        /*
         JSONObject obj = new JSONObject();
         obj.put("result", result);
         //long endTime = System.nanoTime();
@@ -173,6 +211,8 @@ public class Processor {
         //System.out.println("DURATION: " + duration + " ms");
 
         return Response.status(200).entity(obj.toString()).build();
+        */
+        return result;
     }
 
     public String processDocumentV1(String content) {
@@ -472,16 +512,80 @@ public class Processor {
         return doc.body().toString();
     }
 
-    public String processDocumentV2(String content) {
+    public ProcessResult processDocumentV2(String content) {
+      
+        long startTime = System.nanoTime();
+        int conceptCounter = 0;
+        
         Document doc = Jsoup.parseBodyFragment(content);
 
         Elements elements = doc.body().children().select("*");
 
-        //this can be even done on server startup, like stopwords, for better performance
         Tokenizer tokenizer = new TokenizerME(modelEN);
+        
+        long startTime3 = System.nanoTime();
+        //do a first iteration over elements (text) to detect language
+        boolean successfulDetection;
+        do{
+            
+            Detector detector = null;
+            try {
+                detector = DetectorFactory.create();
+            } catch (LangDetectException ex) {
+                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            successfulDetection = true;
+            int counter = 0;
+            
+            for(Element element : elements){
+                //System.out.println("TEXT: " + element.text());
+                if(counter >= THRESHOLD_TEXT_DETECTION){
+                    break;
+                }
 
+                if(element.text().length() > THRESHOLD_TEXT_SIZE){
+                    counter++;
+                    detector.append(" ");
+                    detector.append(element.text());
+                }
+            }
+            try {
+                ArrayList<Language> languageList = detector.getProbabilities();
+                
+                if(languageList.size() > 0){
+                    String bestLanguage = languageList.get(0).lang;
+                    switch(bestLanguage){
+                        case "en":
+                            System.out.println("Text in english.");
+                            break;
+                        case "pt":
+                            System.out.println("Text in portuguese.");
+                            break;
+                        default:
+                            System.out.println("Shouldn't stop here, but let's assume english by default.");
+                            break;
+                    }
+                }
+                //System.out.println("LANGUAGES: " + languageList);
+            } catch (LangDetectException ex) {
+                if(ex.getMessage().equals("no features in text")){
+                    successfulDetection = false;
+                    THRESHOLD_TEXT_SIZE = 0;
+                    THRESHOLD_TEXT_DETECTION = 99999;
+                }else{
+                    Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }while(!successfulDetection);
+        
+        long endTime3 = System.nanoTime();
+        long duration3 = (endTime3 - startTime3) / 1000000;
+        System.out.println("LANGUAGE DETECTION - DURATION: " + duration3 + " ms");
+        
         for (Element element : elements) {
 
+            //ignore scripts
             if (element.tagName().equals("script")) {
                 continue;
             }
@@ -525,21 +629,14 @@ public class Processor {
 
                                 Span span = spans[initialIndex + j];
                                 String token = text.substring(span.getStart(), span.getEnd());
-
-                                //String singularToken = Inflector.singularize("eyes", "en"); //TODO TOMORROW use this is the query 
-                                //System.out.println("TOKEN: " + token + " / SINGULAR: " + singularToken);
                                 tokens[j] = token;
 
-                                if (j == 0) {
-                                    if (token.length() <= 2) {
-                                        //System.out.println("Less than 2");
-                                        break;
-                                    }
-
-                                    if (stopwordsEN.containsKey(token)) {
-                                        //System.out.println("stopword: " + token);
-                                        break;
-                                    }
+                                punctuationMatcher.reset(token);
+                                numberMatcher.reset(token);
+                                if (j == 0 && (token.length() <= 2 || stopwordsEN.containsKey(token))) {
+                                    break;
+                                }else if(punctuationMatcher.matches() || numberMatcher.matches()){
+                                    break;
                                 }
 
                                 String finalToken = "";
@@ -556,48 +653,18 @@ public class Processor {
 
                                 String queryToken = finalToken.toLowerCase();
                                 String originalString = finalToken;
-
                                 String singularQueryToken = Inflector.singularize(queryToken, "en");
 
-                                //ignore only if is first token
-                                /*
-                                 System.out.println("TOKEN: " + queryToken);
-                                 if (token.length() <= 2) {
-                                 System.out.println("Less than 2");
-                                 break;
-                                 }
-                                
-
-                                 if (stopwordsEN.containsKey(queryToken)) {
-                                 System.out.println("stopword: " + queryToken);
-                                 break;
-                                 }
-                                 */
-                                punctuationMatcher.reset(queryToken);
-                                if (punctuationMatcher.matches()) {
-                                    //System.out.println("punctuation: " + queryToken);
-                                    break;
-                                }
-
-                                numberMatcher.reset(queryToken);
-                                if (numberMatcher.matches()) {
-                                    //System.out.println("number: " + queryToken);
-                                    break;
-                                }
-
-                                //Connection conn = ServletContextClass.conn;
                                 Connection connMySQL = ServletContextClass.conn_MySQL;
                                 PreparedStatement stmt;
 
-                                //stmt = conn.prepareStatement("SELECT * FROM chvstring WHERE en LIKE ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                                //stmt.setString(1, queryToken + "%");
-                                long startTime = System.nanoTime();
+                                //long startTime = System.nanoTime();
                                 stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO mrc WHERE STR = ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
                                 stmt.setString(1, singularQueryToken);
 
                                 ResultSet rs = stmt.executeQuery();
-                                long endTime = System.nanoTime();
-                                long duration = (endTime - startTime) / 1000000;
+                                //long endTime = System.nanoTime();
+                                //long duration = (endTime - startTime) / 1000000;
                                 //System.out.println("DURATION: " + duration + " ms for token " + queryToken);
 
                                 rs.last();
@@ -626,15 +693,11 @@ public class Processor {
                                         }
                                     }
 
-                                    //String CUI = rs.getString("CUI");
-                                    if(CUI == null){
-                                        System.out.println("Okay, this shouldn't happen...!");
-                                    }
-                                    stmt = connMySQL.prepareStatement("SELECT * FROM MRSTY mrc WHERE CUI = ?;");
+                                    stmt = connMySQL.prepareStatement("SELECT * FROM MRSTY WHERE CUI = ?;");
                                     stmt.setString(1, CUI);
                                     rs = stmt.executeQuery();
                                     rs.next();
-
+                                    
                                     if (acceptedSemanticType(rs.getString("TUI"))) {
                                         i += j;
                                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), rs.getRow());
@@ -643,6 +706,16 @@ public class Processor {
                                         if( CHVPreferred == null ){
                                             //check the CHV preferred term for this CUI
                                             //assign to CHVPreferred variable
+                                            
+                                            stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'CHV' AND TTY = 'PT';");
+                                            stmt.setString(1, CUI);
+                                            rs = stmt.executeQuery();
+                                            if(rs.next()){
+                                                CHVPreferred = rs.getString("STR");
+                                            }else{
+                                                //the concept may not be in CHV
+                                                System.out.println("The concept " + CUI + " (" + singularQueryToken + ") is not in CHV.");
+                                            }
                                         }
                                         
                                         bestMatch.CHVPreferred = CHVPreferred;
@@ -655,6 +728,9 @@ public class Processor {
                             }
 
                             if (bestMatch != null) {
+                                
+                                conceptCounter++;
+                                
                                 if (lastFound == null) {
                                     splitText.add(text.substring(0, initialSpan.getStart()));
                                     //firstFound = false;
@@ -665,20 +741,12 @@ public class Processor {
                                         System.out.println("e: " + e);
                                     }
                                 }
-                                String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' data-placement='right' title='<a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">" + bestMatch.CHVPreferred + "click here for more information</a>' data-html='true' data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
+                                
+                                String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">click here for more information</a>' data-html='true' data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
 
                                 splitText.add(newString);
                                 lastFound = bestMatch;
                             }
-
-                            //System.out.println("token:" + token);
-                            /*enStemmer.setCurrent(token);
-                             String queryToken = null;
-                             if (enStemmer.stem()) {
-                             queryToken = enStemmer.getCurrent();
-                             } else {
-                             queryToken = token;
-                             }*/
                         }
 
                         if (lastFound != null) {
@@ -709,12 +777,14 @@ public class Processor {
                 Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
             } catch (Exception e) {
                 Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, e);
-            } finally {
             }
         }
-
-        //System.out.println("DOCUMENT: " + doc);
-        return doc.body().toString();
+        
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime);// / 1000000;
+        System.out.println("BODY: " + doc.body().toString());
+        ProcessResult result = new ProcessResult(doc.body().toString(), conceptCounter, duration);
+        return result;
     }
 
     private boolean acceptedSemanticType(String sty) {
