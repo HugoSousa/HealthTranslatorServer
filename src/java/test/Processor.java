@@ -43,9 +43,11 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.DataNode;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Entities;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
+import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
 /**
  * REST Web Service
@@ -91,6 +93,7 @@ public class Processor {
         */
         
         englishProcessor.setSemanticTypes(semanticTypes);
+        portugueseProcessor.setSemanticTypes(semanticTypes);
         //conn = connectToDatabaseOrDie();
     }
     /*
@@ -120,20 +123,25 @@ public class Processor {
     public void preLoad() {
 
         System.out.println("Processor preload");
-
-        InputStream is = servletContext.getResourceAsStream("/WEB-INF/models/en-token.bin");
-        TokenizerModel model = null;
+        InputStream is = null;
         try {
+            is = servletContext.getResourceAsStream("/WEB-INF/models/en-token.bin");
             TokenizerModel modelEN = new TokenizerModel(is);
-            Tokenizer tokenizer = new TokenizerME(modelEN);
-            englishProcessor.setTokenizer(tokenizer);
+            Tokenizer tokenizerEN = new TokenizerME(modelEN);
+            englishProcessor.setTokenizer(tokenizerEN);
+            is.close();
+            
+            is = servletContext.getResourceAsStream("/WEB-INF/models/pt-token.bin");
+            TokenizerModel modelPT = new TokenizerModel(is);
+            Tokenizer tokenizerPT = new TokenizerME(modelPT);
+            portugueseProcessor.setTokenizer(tokenizerPT);
             is.close();
         } catch (IOException ex) {
             Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         is = servletContext.getResourceAsStream("/WEB-INF/stopwords/stopwords_en.txt");
-        ConcurrentHashMap<String, String> stopwords = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, String> stopwordsEN = new ConcurrentHashMap<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -146,34 +154,39 @@ public class Processor {
                     }
 
                     //System.out.println("index: " + index);
-                    stopwords.put(line.substring(0, index), "");
+                    stopwordsEN.put(line.substring(0, index), "");
                 }
             }
             
-            englishProcessor.setStopwords(stopwords);
+            englishProcessor.setStopwords(stopwordsEN);
+            //set stopwords pt
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        
+        is = servletContext.getResourceAsStream("/WEB-INF/stopwords/stopwords_pt.txt");
+        ConcurrentHashMap<String, String> stopwordsPT = new ConcurrentHashMap<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                //System.out.println("line: " + line);
+                if (!line.isEmpty() && Character.isLetter(line.charAt(0))) {
+                    int index = line.indexOf(' ');
+
+                    if (index == -1) {
+                        index = line.length();
+                    }
+
+                    //System.out.println("index: " + index);
+                    stopwordsPT.put(line.substring(0, index), "");
+                }
+            }
+            
+            portugueseProcessor.setStopwords(stopwordsEN);
         } catch (Exception e) {
             System.out.println(e);
         }
 
-        /*
-         is = servletContext.getResourceAsStream("/WEB-INF/language-profiles/en");
-         File f = new File(servletContext.getContextPath(), "name");
-         String fileText = "";
-         try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
-         String line;
-         while ((line = br.readLine()) != null) {
-         fileText += line;
-         }
-         } catch (Exception e) {
-         System.out.println(e);
-         }
-          
-         try {
-         FileUtils.writeStringToFile(f, fileText);
-         } catch (IOException ex) {
-         Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
-         }
-         */
         try {
             long startTime = System.nanoTime();
             String directory = servletContext.getRealPath("/") + "/WEB-INF/language-profiles/";
@@ -196,7 +209,7 @@ public class Processor {
     @Produces("application/json")
     @Consumes("application/json")
     public ProcessResult test(BodyMessage param) {
-        System.out.println("Starting test");
+        System.out.println("Starting Processing");
         //System.out.println("cenas: " + param.getBody());
         /*
          long startTime = System.nanoTime();
@@ -209,7 +222,7 @@ public class Processor {
         ProcessResult result = processDocumentV2(param.getBody());
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
-        System.out.println("V2 - DURATION: " + duration + " ms");
+        System.out.println("DURATION: " + duration + " ms");
         /*
          JSONObject obj = new JSONObject();
          obj.put("result", result);
@@ -224,13 +237,13 @@ public class Processor {
 
     public ProcessResult processDocumentV2(String content) {
         
+        System.out.println("CONTENT: " + content);
         long startTime = System.nanoTime();
         int conceptCounter = 0;
-        
-        
 
-        Document doc = Jsoup.parseBodyFragment(content);
-
+        Document doc = Jsoup.parseBodyFragment(content);      
+        doc.outputSettings(new Document.OutputSettings().prettyPrint(false));
+        
         Elements elements = doc.body().children().select("*");
 
         String language = detectLanguage(elements);
@@ -250,8 +263,9 @@ public class Processor {
         for (Element element : elements) {
 
             //ignore scripts
-            if (element.tagName().equals("script")) {
-                continue;
+            if (element.tagName().equals("script") /*|| element.tagName().equals("noscript")*/) {
+                element.remove();
+                //continue;
             }
 
             //System.out.println("ELEMENT: " + element.tagName());
@@ -266,8 +280,14 @@ public class Processor {
 
                     if (node instanceof TextNode) {
                         //System.out.println("NODE: TEXT");
-                        String text = ((TextNode) node).text();
+                        
+                        String text = ((TextNode) node).getWholeText();
                         //System.out.println("TEXT: " + text);
+                        if(text.contains("$")){
+                            System.out.println("HERE");
+                            if(text.startsWith("\n"))
+                                System.out.println("HERE 2");
+                        }
 
                         Span spans[] = processor.tokenizer.tokenizePos(text);
 
@@ -395,7 +415,8 @@ public class Processor {
                             Concept bestMatch = processor.processToken(spans, i, text, FORWARD_THRESHOLD);
                             
                             if (bestMatch != null) {
-
+                                //how to know how many i to increment?
+                                i += bestMatch.words - 1;
                                 conceptCounter++;
 
                                 if (lastFound == null) {
@@ -423,9 +444,20 @@ public class Processor {
                         if (splitText.size() > 0) {
                             //replace textnode by text-element-text
 
+                            /*
+                            * with the current splitting method:
+                            * even chunks are text nodes
+                            * odd chunks are data nodes (new html created)
+                            * this way, as we are replacing by a single datanode, we need to escape the text parts
+                            */
                             StringBuilder sb = new StringBuilder(text.length());
-                            for (String chunk : splitText) {
-                                sb.append(chunk);
+                            for(int i = 0; i < splitText.size(); i++){
+                                String chunk = splitText.get(i);
+                                if(i%2 == 0){
+                                    sb.append(escapeHtml4(chunk));
+                                }else{
+                                    sb.append(chunk);
+                                }
                             }
 
                             DataNode dn = new DataNode(sb.toString(), "");
@@ -490,19 +522,7 @@ public class Processor {
 
                 if (languageList.size() > 0) {
                     String bestLanguage = languageList.get(0).lang;
-                    /*
-                     switch(bestLanguage){
-                     case "en":
-                     System.out.println("Text in english.");
-                     return 
-                     break;
-                     case "pt":
-                     System.out.println("Text in portuguese.");
-                     break;
-                     default:
-                     System.out.println("Shouldn't stop here, but let's assume english by default.");
-                     break;
-                     }*/
+                    
                     return bestLanguage;
                 }
                 //System.out.println("LANGUAGES: " + languageList);

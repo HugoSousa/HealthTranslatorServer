@@ -51,14 +51,6 @@ public class EnglishProcessor extends TokenProcessor {
             String token = text.substring(span.getStart(), span.getEnd());
             tokens[j] = token;
 
-            punctuationMatcher.reset(token);
-            numberMatcher.reset(token);
-            if (j == 0 && (token.length() <= 2 || stopwords.containsKey(token))) {
-                break;
-            } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
-                break;
-            }
-
             String finalToken = "";
             if (j == 0) {
                 finalToken = token;
@@ -79,18 +71,28 @@ public class EnglishProcessor extends TokenProcessor {
             } catch (Exception ex) {
                 Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
             }
+            
+            punctuationMatcher.reset(token);
+            numberMatcher.reset(token);
+            if (j == 0 && (singularQueryToken.length() <= 2 || stopwords.containsKey(singularQueryToken))) {
+                break;
+            } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
+                break;
+            }
 
             Connection connMySQL = ServletContextClass.conn_MySQL;
             PreparedStatement stmt;
 
             try {
+                connMySQL.setCatalog("umls_en");
+
                 //long startTime = System.nanoTime();
                 stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO mrc WHERE STR = ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
                 stmt.setString(1, singularQueryToken);
 
                 ResultSet rs = stmt.executeQuery();
-            //long endTime = System.nanoTime();
+                //long endTime = System.nanoTime();
                 //long duration = (endTime - startTime) / 1000000;
                 //System.out.println("DURATION: " + duration + " ms for token " + queryToken);
 
@@ -100,7 +102,7 @@ public class EnglishProcessor extends TokenProcessor {
                 //rs.next();
 
                 if (total >= 1) {
-                //iterate result set, check if it's CHV preferred or synonym
+                    //iterate result set, check if it's CHV preferred or synonym
                     //if they map to different CUIs, check the one with TTY = PT
 
                     String CUI = null;
@@ -126,12 +128,13 @@ public class EnglishProcessor extends TokenProcessor {
                     rs.next();
 
                     if (acceptedSemanticType(rs.getString("TUI"))) {
-                        i += j;
-                        bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), rs.getRow());
+                        //i += j;
+                        
+                        bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
 
                         if (CHVPreferred == null) {
-                        //check the CHV preferred term for this CUI
+                            //check the CHV preferred term for this CUI
                             //assign to CHVPreferred variable
 
                             stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'CHV' AND TTY = 'PT';");
