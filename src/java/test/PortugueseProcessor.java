@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import opennlp.tools.util.Span;
@@ -86,12 +87,12 @@ public class PortugueseProcessor extends TokenProcessor {
             try {
                 connMySQL.setCatalog("umls_pt");
 
-                String query = "select c.CUI, STR, SAB, TTY, null as chv_pref_pt, null AS umls_pref_pt, tui\n"
+                String query = "select c.CUI, STR, SAB, TTY, null as chv_pref_pt, null AS umls_pref_pt, tui "
                         + "from MRCONSO c, MRSTY s "
                         + "WHERE STR = ? "
                         + "AND c.cui = s.cui "
                         + "UNION ALL "
-                        + "select s.cui, pt, 'CHV' AS sab, null as tty, chv_pref_pt, umls_pref_pt, null as tui "
+                        + "select s.cui, pt, 'CHV' AS sab, null as tty, chv_pref_pt, umls_pref_pt, tui "
                         + "from chvstring s join chvconcept c on s.cui = c.cui "
                         + "WHERE pt = ?;";
                 
@@ -106,50 +107,74 @@ public class PortugueseProcessor extends TokenProcessor {
                 int total = rs.getRow();
                 rs.beforeFirst();
                 //rs.next();
-                if(singularQueryToken.equals("na")){
-                    int a = 2;
-                }
+
                 //System.out.print("TOKEN " + singularQueryToken + ": " + total + " results");
 
                 if (total >= 1) {
-                    //se tiver só resultados do CHV e forem muitos, provavelmente é uma má tradução! (exemplo "elevado")
+                    
                     String CUI = null;
                     String CHVPreferred = null;
-                    String TUI = null;
-                    while (rs.next()) {
-                        if (rs.getRow() == 1) {
-                            //assign the first result at least, so it's not null
-                            CUI = rs.getString("CUI");
-                        } else {
-                            //TODO os TTY são diferentes da SNOMED!!
-                            //desambiguação de diferentes CUI, como?
-                            /*
-                            if (rs.getString("CUI") != CUI && !rs.getString("SAB").equals("CHV") && rs.getString("TTY").equals("PT")) {
-                                CUI = rs.getString("CUI");
+                    ArrayList<String> tuis = new ArrayList<>();
+                    int TUIPreferred = -1;
+                    
+                    if(allResultsFromCHV(rs)){
+                        //if there's only many CHV results, it's probably a bad translation (example: "elevado") 
+                        if(total < 4){
+                            
+                            //get the CUIS on a list
+                            //if the preferred term is in the results, that's the best CUI
+                            while (rs.next()) {
+                                if (rs.getRow() == 1) {
+                                    //assign the first result at least, so it's not null
+                                    CUI = rs.getString("CUI");
+                                }
+                                
+                                tuis.add(rs.getString("tui"));
+                                
+                                CHVPreferred = rs.getString("chv_pref_pt");
+                                //TUIPreferred??
+                                //CHVPreferred??
                             }
-                            */
+                            
+                            if(tuis.size() > 1){
+                                //there are multiple results, elements of tuis may be splitted by ";"
+                            }
                         }
+                    }else{                  
+                        while (rs.next()) {
+                            if (rs.getRow() == 1) {
+                                //assign the first result at least, so it's not null
+                                CUI = rs.getString("CUI");
+                            } else {
+                                if(rs.getString("CUI") != CUI){
+                                    //what to do?
+                                }
+                            }
 
-                        //Collator ptCollator = Collator.getInstance(Locale.forLanguageTag("pt"));
-                        //ptCollator.setStrength(Collator.PRIMARY);
-                        if (rs.getString("SAB").equals("CHV")) {
-                            CHVPreferred = rs.getString("chv_pref_pt");
-                        }else{
-                            if(TUI == null){
-                                TUI = rs.getString("tui");
+                            if (rs.getString("SAB").equals("CHV")) {
+                                CHVPreferred = rs.getString("chv_pref_pt");
+                            }else{
+                                /*if(TUI == null){
+                                    TUI = rs.getString("tui");
+                                }*/
+                                tuis.add(rs.getString("tui"));
                             }
                         }
                     }
                     
                     //TODO TUI may be null if only CHV results are returned!
-                    if(TUI == null || acceptedSemanticType(TUI)){
+                    if( tuis.size() > 0 &&
+                        (TUIPreferred == -1 && acceptedSemanticType(tuis)) || 
+                        (TUIPreferred != -1 && acceptedSemanticType(tuis.get(TUIPreferred)))){
                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
                         bestMatch.CHVPreferred = CHVPreferred;
-
+                        
+                        /*
                         if (CHVPreferred == null) {
                             //System.out.println("The concept " + CUI + " (" + singularQueryToken + ") is not in CHV.");
                         }
+                        */
                     }
                 }
                 
@@ -162,6 +187,37 @@ public class PortugueseProcessor extends TokenProcessor {
         }
 
         return bestMatch;
+    };
+    
+    private boolean allResultsFromCHV(ResultSet rs){
+        
+        boolean result = true;
+        try {
+            while(rs.next()){
+                if( ! rs.getString("SAB").equals("CHV")){
+                    result = false;
+                    break;
+                }
+            }
+            
+            rs.beforeFirst();
+        } catch (SQLException ex) {
+            Logger.getLogger(PortugueseProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return result;
     }
-;
+    
+    private boolean acceptedSemanticType(ArrayList<String> tuis) {
+        
+        for(String tuiList: tuis){
+            String[] tuiSplit = tuiList.split(";");
+            for(String tui: tuiSplit){
+                if(! acceptedSemanticType(tui))
+                    return false;
+            }
+        }
+        
+        return true;
+    }
 }

@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import opennlp.tools.util.Span;
@@ -90,7 +91,7 @@ public class EnglishProcessor extends TokenProcessor {
                 stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO mrc WHERE STR = ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
                 stmt.setString(1, singularQueryToken);
-
+                
                 ResultSet rs = stmt.executeQuery();
                 //long endTime = System.nanoTime();
                 //long duration = (endTime - startTime) / 1000000;
@@ -125,27 +126,29 @@ public class EnglishProcessor extends TokenProcessor {
                     stmt = connMySQL.prepareStatement("SELECT * FROM MRSTY WHERE CUI = ?;");
                     stmt.setString(1, CUI);
                     rs = stmt.executeQuery();
-                    rs.next();
-
-                    if (acceptedSemanticType(rs.getString("TUI"))) {
-                        //i += j;
+                    
+                    ArrayList<String> tuis = new ArrayList<>();
+                    while(rs.next()){
+                        tuis.add(rs.getString("tui"));
+                    }
+                    
+                    if (acceptedSemanticType(tuis)) {
                         
                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
 
                         if (CHVPreferred == null) {
-                            //check the CHV preferred term for this CUI
-                            //assign to CHVPreferred variable
 
                             stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'CHV' AND TTY = 'PT';");
                             stmt.setString(1, CUI);
                             rs = stmt.executeQuery();
                             if (rs.next()) {
                                 CHVPreferred = rs.getString("STR");
-                            } else {
+                            }/* else {
                                 //the concept may not be in CHV
                                 System.out.println("The concept " + CUI + " (" + singularQueryToken + ") is not in CHV.");
                             }
+                            */
                         }
 
                         bestMatch.CHVPreferred = CHVPreferred;
@@ -161,6 +164,16 @@ public class EnglishProcessor extends TokenProcessor {
         }
 
         return bestMatch;
+    }
+    
+    private boolean acceptedSemanticType(ArrayList<String> tuis) {
+        
+        for(String tui: tuis){
+            if(! acceptedSemanticType(tui))
+                return false;
+        }
+        
+        return true;
     }
 
 }

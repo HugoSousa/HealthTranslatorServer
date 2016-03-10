@@ -13,10 +13,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -24,8 +20,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
 import javax.servlet.ServletContext;
@@ -38,12 +32,10 @@ import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
-import org.jactiveresource.Inflector;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.DataNode;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.nodes.Entities;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
@@ -62,7 +54,7 @@ public class Processor {
     ServletContext servletContext;
 
     //private final ConcurrentHashMap<String, String> stopwordsEN = new ConcurrentHashMap<>();
-    private final HashSet<String> semanticTypes = new HashSet<>(Arrays.asList("T005", "T007", "T023", "T029", "T030", "T033", "T034", "T037", "T046", "T047", "T048", "T059", "T060", "T061", "T116", "T121", "T125", "T126", "T127", "T129", "T130", "T131", "T184", "T192", "T195", "T200"));
+    private final HashSet<String> semanticTypes = new HashSet<>(Arrays.asList("T005", "T007", "T023", "T029", "T030", "T034", "T037", "T040", "T046", "T047", "T048", "T059", "T060", "T061", "T116", "T121", "T125", "T126", "T127", "T129", "T130", "T131", "T184", "T192", "T195", "T200"));
 
     //private Matcher punctuationMatcher;
     //private Matcher numberMatcher;
@@ -210,28 +202,13 @@ public class Processor {
     @Consumes("application/json")
     public ProcessResult test(BodyMessage param) {
         System.out.println("Starting Processing");
-        //System.out.println("cenas: " + param.getBody());
-        /*
-         long startTime = System.nanoTime();
-         String result = processDocumentV1(param.getBody());
-         long endTime = System.nanoTime();
-         long duration = (endTime - startTime) / 1000000;
-         System.out.println("V1 - DURATION: " + duration + " ms");
-         */
+
         long startTime = System.nanoTime();
         ProcessResult result = processDocumentV2(param.getBody());
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("DURATION: " + duration + " ms");
-        /*
-         JSONObject obj = new JSONObject();
-         obj.put("result", result);
-         //long endTime = System.nanoTime();
-         //long duration = (endTime - startTime) / 1000000;
-         //System.out.println("DURATION: " + duration + " ms");
 
-         return Response.status(200).entity(obj.toString()).build();
-         */
         return result;
     }
 
@@ -265,7 +242,7 @@ public class Processor {
             //ignore scripts
             if (element.tagName().equals("script") /*|| element.tagName().equals("noscript")*/) {
                 element.remove();
-                //continue;
+                continue;
             }
 
             //System.out.println("ELEMENT: " + element.tagName());
@@ -282,146 +259,23 @@ public class Processor {
                         //System.out.println("NODE: TEXT");
                         
                         String text = ((TextNode) node).getWholeText();
-                        //System.out.println("TEXT: " + text);
-                        if(text.contains("$")){
-                            System.out.println("HERE");
-                            if(text.startsWith("\n"))
-                                System.out.println("HERE 2");
-                        }
 
                         Span spans[] = processor.tokenizer.tokenizePos(text);
 
                         ArrayList<String> splitText = new ArrayList<>();
-                        //boolean firstFound = true;
                         Concept lastFound = null;
-                        //EnglishStemmer enStemmer = new EnglishStemmer();
 
                         for (int i = 0; i < spans.length; i++) {
-                            //for (Span span : spans) {
-                            /*
-                            String[] tokens = new String[FORWARD_THRESHOLD];
-                            Span initialSpan = spans[i];
-                            Concept bestMatch = null;
-
-                            int initialIndex = i;
-
-                            for (int j = 0; j < FORWARD_THRESHOLD; j++) {
-
-                                if (initialIndex + j >= spans.length) {
-                                    break;
-                                }
-
-                                Span span = spans[initialIndex + j];
-                                String token = text.substring(span.getStart(), span.getEnd());
-                                tokens[j] = token;
-
-                                punctuationMatcher.reset(token);
-                                numberMatcher.reset(token);
-                                if (j == 0 && (token.length() <= 2 || stopwordsEN.containsKey(token))) {
-                                    break;
-                                } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
-                                    break;
-                                }
-
-                                String finalToken = "";
-                                if (j == 0) {
-                                    finalToken = token;
-                                } else if (j > 0) {
-                                    for (int k = 0; k <= j; k++) {
-                                        finalToken += tokens[k];
-                                        if (k < j) {
-                                            finalToken += " ";
-                                        }
-                                    }
-                                }
-
-                                String queryToken = finalToken.toLowerCase();
-                                String originalString = finalToken;
-                                String singularQueryToken = Inflector.singularize(queryToken, "en");
-
-                                Connection connMySQL = ServletContextClass.conn_MySQL;
-                                PreparedStatement stmt;
-
-                                //long startTime = System.nanoTime();
-                                stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO mrc WHERE STR = ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                                stmt.setString(1, singularQueryToken);
-
-                                ResultSet rs = stmt.executeQuery();
-                                //long endTime = System.nanoTime();
-                                //long duration = (endTime - startTime) / 1000000;
-                                //System.out.println("DURATION: " + duration + " ms for token " + queryToken);
-
-                                rs.last();
-                                int total = rs.getRow();
-                                rs.beforeFirst();
-                                //rs.next();
-
-                                if (total >= 1) {
-                                    //iterate result set, check if it's CHV preferred or synonym
-                                    //if they map to different CUIs, check the one with TTY = PT
-
-                                    String CUI = null;
-                                    String CHVPreferred = null;
-                                    while (rs.next()) {
-                                        if (rs.getRow() == 1) {
-                                            //assign the first result at least, so it's not null
-                                            CUI = rs.getString("CUI");
-                                        } else {
-                                            if (rs.getString("CUI") != CUI && rs.getString("TTY").equals("PT")) {
-                                                CUI = rs.getString("CUI");
-                                            }
-                                        }
-
-                                        if (rs.getString("TTY").equals("PT") && rs.getString("SAB").equals("CHV")) {
-                                            CHVPreferred = singularQueryToken;
-                                        }
-                                    }
-
-                                    stmt = connMySQL.prepareStatement("SELECT * FROM MRSTY WHERE CUI = ?;");
-                                    stmt.setString(1, CUI);
-                                    rs = stmt.executeQuery();
-                                    rs.next();
-
-                                    if (acceptedSemanticType(rs.getString("TUI"))) {
-                                        i += j;
-                                        bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), rs.getRow());
-                                        bestMatch.CUI = CUI;
-
-                                        if (CHVPreferred == null) {
-                                            //check the CHV preferred term for this CUI
-                                            //assign to CHVPreferred variable
-
-                                            stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'CHV' AND TTY = 'PT';");
-                                            stmt.setString(1, CUI);
-                                            rs = stmt.executeQuery();
-                                            if (rs.next()) {
-                                                CHVPreferred = rs.getString("STR");
-                                            } else {
-                                                //the concept may not be in CHV
-                                                System.out.println("The concept " + CUI + " (" + singularQueryToken + ") is not in CHV.");
-                                            }
-                                        }
-
-                                        bestMatch.CHVPreferred = CHVPreferred;
-
-                                    }
-                                }
-
-                                stmt.close();
-                                rs.close();
-                            }
-                            */
+                            
                             Span initialSpan = spans[i];
                             Concept bestMatch = processor.processToken(spans, i, text, FORWARD_THRESHOLD);
                             
                             if (bestMatch != null) {
-                                //how to know how many i to increment?
                                 i += bestMatch.words - 1;
                                 conceptCounter++;
 
                                 if (lastFound == null) {
                                     splitText.add(text.substring(0, initialSpan.getStart()));
-                                    //firstFound = false;
                                 } else {
                                     try {
                                         splitText.add(text.substring(lastFound.span.getEnd(), bestMatch.span.getStart()));
@@ -540,131 +394,7 @@ public class Processor {
         return "en";
     }
 
-    private boolean acceptedSemanticType(String sty) {
+    protected boolean acceptedSemanticType(String sty) {
         return semanticTypes.contains(sty);
     }
-    
-    /*
-    private Concept processToken(Span[] spans, int i, String text) throws SQLException {
-        
-        String[] tokens = new String[FORWARD_THRESHOLD];
-        Span initialSpan = spans[i];
-        Concept bestMatch = null;
-
-        int initialIndex = i;
-        
-        for (int j = 0; j < FORWARD_THRESHOLD; j++) {
-
-            if (initialIndex + j >= spans.length) {
-                break;
-            }
-
-            Span span = spans[initialIndex + j];
-            String token = text.substring(span.getStart(), span.getEnd());
-            tokens[j] = token;
-
-            punctuationMatcher.reset(token);
-            numberMatcher.reset(token);
-            if (j == 0 && (token.length() <= 2 || englishProcessor.stopwords.containsKey(token))) {
-                break;
-            } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
-                break;
-            }
-
-            String finalToken = "";
-            if (j == 0) {
-                finalToken = token;
-            } else if (j > 0) {
-                for (int k = 0; k <= j; k++) {
-                    finalToken += tokens[k];
-                    if (k < j) {
-                        finalToken += " ";
-                    }
-                }
-            }
-
-            String queryToken = finalToken.toLowerCase();
-            String originalString = finalToken;
-            String singularQueryToken = null;
-            try {
-                singularQueryToken = Inflector.singularize(queryToken, "en");
-            } catch (Exception ex) {
-                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
-            Connection connMySQL = ServletContextClass.conn_MySQL;
-            PreparedStatement stmt;
-
-            //long startTime = System.nanoTime();
-            stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO mrc WHERE STR = ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            stmt.setString(1, singularQueryToken);
-
-            ResultSet rs = stmt.executeQuery();
-            //long endTime = System.nanoTime();
-            //long duration = (endTime - startTime) / 1000000;
-            //System.out.println("DURATION: " + duration + " ms for token " + queryToken);
-
-            rs.last();
-            int total = rs.getRow();
-            rs.beforeFirst();
-            //rs.next();
-
-            if (total >= 1) {
-                                    //iterate result set, check if it's CHV preferred or synonym
-                //if they map to different CUIs, check the one with TTY = PT
-
-                String CUI = null;
-                String CHVPreferred = null;
-                while (rs.next()) {
-                    if (rs.getRow() == 1) {
-                        //assign the first result at least, so it's not null
-                        CUI = rs.getString("CUI");
-                    } else {
-                        if (rs.getString("CUI") != CUI && rs.getString("TTY").equals("PT")) {
-                            CUI = rs.getString("CUI");
-                        }
-                    }
-
-                    if (rs.getString("TTY").equals("PT") && rs.getString("SAB").equals("CHV")) {
-                        CHVPreferred = singularQueryToken;
-                    }
-                }
-
-                stmt = connMySQL.prepareStatement("SELECT * FROM MRSTY WHERE CUI = ?;");
-                stmt.setString(1, CUI);
-                rs = stmt.executeQuery();
-                rs.next();
-
-                if (acceptedSemanticType(rs.getString("TUI"))) {
-                    i += j;
-                    bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), rs.getRow());
-                    bestMatch.CUI = CUI;
-
-                    if (CHVPreferred == null) {
-                                            //check the CHV preferred term for this CUI
-                        //assign to CHVPreferred variable
-
-                        stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'CHV' AND TTY = 'PT';");
-                        stmt.setString(1, CUI);
-                        rs = stmt.executeQuery();
-                        if (rs.next()) {
-                            CHVPreferred = rs.getString("STR");
-                        } else {
-                            //the concept may not be in CHV
-                            System.out.println("The concept " + CUI + " (" + singularQueryToken + ") is not in CHV.");
-                        }
-                    }
-
-                    bestMatch.CHVPreferred = CHVPreferred;
-
-                }
-            }
-
-            stmt.close();
-            rs.close();
-        }
-        
-        return bestMatch;
-    }
-    */
 }
