@@ -278,6 +278,11 @@ public class Processor {
 
                             Span initialSpan = spans[i];
                             Concept bestMatch = processor.processToken(spans, i, text, FORWARD_THRESHOLD);
+                            
+                            if(bestMatch != null){
+                                //replace "'" so it doesn't break the tooltip html if the definition contains it
+                                bestMatch.definition = processor.getDefinition(bestMatch.string).replace("'", "&#39;");
+                            }
 
                             if (bestMatch != null) {
                                 i += bestMatch.words - 1;

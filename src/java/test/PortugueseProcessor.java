@@ -186,9 +186,6 @@ public class PortugueseProcessor extends TokenProcessor {
                 Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        
-        if(bestMatch != null)
-            bestMatch.definition = getDefinition(bestMatch.string).replace("'", "\\u0027");;
 
         return bestMatch;
     };

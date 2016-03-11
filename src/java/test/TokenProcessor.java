@@ -74,7 +74,7 @@ public abstract class TokenProcessor {
         String definition = null;
         
         CloseableHttpClient httpclient = HttpClients.createDefault();
-        HttpGet httpGet = new HttpGet("https://" + code + ".wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&redirects&exintro&format=json&titles=" + concept.replace(" ", "%20"));
+        HttpGet httpGet = new HttpGet("https://" + code + ".wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&redirects&exsentences=2&format=json&titles=" + concept.replace(" ", "%20"));
         CloseableHttpResponse response1 = null;
         try {
             response1 = httpclient.execute(httpGet);
