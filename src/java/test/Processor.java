@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -22,6 +23,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.core.Context;
@@ -40,6 +44,12 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 /**
  * REST Web Service
@@ -58,9 +68,7 @@ public class Processor {
 
     //private Matcher punctuationMatcher;
     //private Matcher numberMatcher;
-
     //private TokenizerModel modelEN;
-
     private final int FORWARD_THRESHOLD = 5;
 
     //number of text chunks bigger than THRESHOLD_TEXT_SIZE that are extracted for language detection
@@ -71,19 +79,19 @@ public class Processor {
 
     private final EnglishProcessor englishProcessor = new EnglishProcessor();
     private final PortugueseProcessor portugueseProcessor = new PortugueseProcessor();
-        
+
     /**
      * Creates a new instance of Processor
      */
     public Processor() {
         System.out.println("Processor constructor");
         /*
-        Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
-        Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
-        punctuationMatcher = punctuationPattern.matcher("");
-        numberMatcher = numberPattern.matcher("");
-        */
-        
+         Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
+         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
+         punctuationMatcher = punctuationPattern.matcher("");
+         numberMatcher = numberPattern.matcher("");
+         */
+
         englishProcessor.setSemanticTypes(semanticTypes);
         portugueseProcessor.setSemanticTypes(semanticTypes);
         //conn = connectToDatabaseOrDie();
@@ -122,7 +130,7 @@ public class Processor {
             Tokenizer tokenizerEN = new TokenizerME(modelEN);
             englishProcessor.setTokenizer(tokenizerEN);
             is.close();
-            
+
             is = servletContext.getResourceAsStream("/WEB-INF/models/pt-token.bin");
             TokenizerModel modelPT = new TokenizerModel(is);
             Tokenizer tokenizerPT = new TokenizerME(modelPT);
@@ -149,13 +157,13 @@ public class Processor {
                     stopwordsEN.put(line.substring(0, index), "");
                 }
             }
-            
+
             englishProcessor.setStopwords(stopwordsEN);
             //set stopwords pt
         } catch (Exception e) {
             System.out.println(e);
         }
-        
+
         is = servletContext.getResourceAsStream("/WEB-INF/stopwords/stopwords_pt.txt");
         ConcurrentHashMap<String, String> stopwordsPT = new ConcurrentHashMap<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
@@ -173,7 +181,7 @@ public class Processor {
                     stopwordsPT.put(line.substring(0, index), "");
                 }
             }
-            
+
             portugueseProcessor.setStopwords(stopwordsEN);
         } catch (Exception e) {
             System.out.println(e);
@@ -213,19 +221,19 @@ public class Processor {
     }
 
     public ProcessResult processDocumentV2(String content) {
-        
-        System.out.println("CONTENT: " + content);
+
+        //System.out.println("CONTENT: " + content);
         long startTime = System.nanoTime();
         int conceptCounter = 0;
 
-        Document doc = Jsoup.parseBodyFragment(content);      
+        Document doc = Jsoup.parseBodyFragment(content);
         doc.outputSettings(new Document.OutputSettings().prettyPrint(false));
-        
+
         Elements elements = doc.body().children().select("*");
 
         String language = detectLanguage(elements);
         TokenProcessor processor = null;
-        switch(language){
+        switch (language) {
             case "en":
                 processor = englishProcessor;
                 break;
@@ -257,19 +265,20 @@ public class Processor {
 
                     if (node instanceof TextNode) {
                         //System.out.println("NODE: TEXT");
-                        
+
                         String text = ((TextNode) node).getWholeText();
 
                         Span spans[] = processor.tokenizer.tokenizePos(text);
 
                         ArrayList<String> splitText = new ArrayList<>();
                         Concept lastFound = null;
+                        //EnglishStemmer enStemmer = new EnglishStemmer();
 
                         for (int i = 0; i < spans.length; i++) {
-                            
+
                             Span initialSpan = spans[i];
                             Concept bestMatch = processor.processToken(spans, i, text, FORWARD_THRESHOLD);
-                            
+
                             if (bestMatch != null) {
                                 i += bestMatch.words - 1;
                                 conceptCounter++;
@@ -286,7 +295,7 @@ public class Processor {
 
                                 String replace = replaceConcept(bestMatch);
                                 splitText.add(replace);
-                                
+
                                 lastFound = bestMatch;
                             }
                         }
@@ -299,17 +308,17 @@ public class Processor {
                             //replace textnode by text-element-text
 
                             /*
-                            * with the current splitting method:
-                            * even chunks are text nodes
-                            * odd chunks are data nodes (new html created)
-                            * this way, as we are replacing by a single datanode, we need to escape the text parts
-                            */
+                             * with the current splitting method:
+                             * even chunks are text nodes
+                             * odd chunks are data nodes (new html created)
+                             * this way, as we are replacing by a single datanode, we need to escape the text parts
+                             */
                             StringBuilder sb = new StringBuilder(text.length());
-                            for(int i = 0; i < splitText.size(); i++){
+                            for (int i = 0; i < splitText.size(); i++) {
                                 String chunk = splitText.get(i);
-                                if(i%2 == 0){
+                                if (i % 2 == 0) {
                                     sb.append(escapeHtml4(chunk));
-                                }else{
+                                } else {
                                     sb.append(chunk);
                                 }
                             }
@@ -339,8 +348,8 @@ public class Processor {
     }
 
     private String replaceConcept(Concept bestMatch) {
-        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">click here for more information</a>' data-html='true' data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
-        
+        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.definition + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">click here for more information</a>' data-html='true' data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
+
         return newString;
     }
 
@@ -376,7 +385,7 @@ public class Processor {
 
                 if (languageList.size() > 0) {
                     String bestLanguage = languageList.get(0).lang;
-                    
+
                     return bestLanguage;
                 }
                 //System.out.println("LANGUAGES: " + languageList);
@@ -397,4 +406,6 @@ public class Processor {
     protected boolean acceptedSemanticType(String sty) {
         return semanticTypes.contains(sty);
     }
+
+
 }

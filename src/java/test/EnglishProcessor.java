@@ -23,6 +23,7 @@ public class EnglishProcessor extends TokenProcessor {
 
     public EnglishProcessor() {
         super();
+        code = "en";
     }
 
     /**
@@ -63,7 +64,7 @@ public class EnglishProcessor extends TokenProcessor {
                     }
                 }
             }
-
+            
             String queryToken = finalToken.toLowerCase();
             String originalString = finalToken;
             String singularQueryToken = null;
@@ -75,7 +76,7 @@ public class EnglishProcessor extends TokenProcessor {
             
             punctuationMatcher.reset(token);
             numberMatcher.reset(token);
-            if (j == 0 && (singularQueryToken.length() <= 2 || stopwords.containsKey(singularQueryToken))) {
+            if (j == 0 && (queryToken.length() <= 2 || stopwords.containsKey(queryToken))) {
                 break;
             } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
                 break;
@@ -91,7 +92,7 @@ public class EnglishProcessor extends TokenProcessor {
                 stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO mrc WHERE STR = ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
                 stmt.setString(1, singularQueryToken);
-                
+                //System.out.println("TOKEN: " + singularQueryToken);
                 ResultSet rs = stmt.executeQuery();
                 //long endTime = System.nanoTime();
                 //long duration = (endTime - startTime) / 1000000;
@@ -103,6 +104,7 @@ public class EnglishProcessor extends TokenProcessor {
                 //rs.next();
 
                 if (total >= 1) {
+                    //System.out.println("FOUND RESULTS FOR: " + singularQueryToken);
                     //iterate result set, check if it's CHV preferred or synonym
                     //if they map to different CUIs, check the one with TTY = PT
 
@@ -162,7 +164,13 @@ public class EnglishProcessor extends TokenProcessor {
                 Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-
+        
+        /*
+        if(bestMatch != null){
+            bestMatch.definition = getDefinition(bestMatch.string).replace("'", "\\u0027");
+        }
+        */ 
+        
         return bestMatch;
     }
     

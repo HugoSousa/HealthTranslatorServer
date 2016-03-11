@@ -23,6 +23,7 @@ public class PortugueseProcessor extends TokenProcessor {
 
     public PortugueseProcessor() {
         super();
+        code = "pt";
     }
 
     /**
@@ -75,7 +76,7 @@ public class PortugueseProcessor extends TokenProcessor {
             
             punctuationMatcher.reset(token);
             numberMatcher.reset(token);
-            if (j == 0 && (singularQueryToken.length() <= 2 || stopwords.containsKey(singularQueryToken))) {
+            if (j == 0 && (queryToken.length() <= 2 || stopwords.containsKey(queryToken))) {
                 break;
             } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
                 break;
@@ -185,6 +186,9 @@ public class PortugueseProcessor extends TokenProcessor {
                 Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        
+        if(bestMatch != null)
+            bestMatch.definition = getDefinition(bestMatch.string).replace("'", "\\u0027");;
 
         return bestMatch;
     };
