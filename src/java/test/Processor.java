@@ -44,12 +44,6 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 
 /**
  * REST Web Service
@@ -281,7 +275,10 @@ public class Processor {
                             
                             if(bestMatch != null){
                                 //replace "'" so it doesn't break the tooltip html if the definition contains it
-                                bestMatch.definition = processor.getDefinition(bestMatch.string).replace("'", "&#39;");
+                                String definition = processor.getDefinition(bestMatch);
+                                if(definition != null){
+                                    bestMatch.definition = definition.replace("'", "&#39;");
+                                }
                             }
 
                             if (bestMatch != null) {

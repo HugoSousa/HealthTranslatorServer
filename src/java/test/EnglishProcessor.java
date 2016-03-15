@@ -168,6 +168,43 @@ public class EnglishProcessor extends TokenProcessor {
         return bestMatch;
     }
     
+    @Override
+    protected String getDefinition(Concept concept) {
+        
+        long startTime = System.nanoTime();
+        
+        String definition = null;
+        
+        Connection connMySQL = ServletContextClass.conn_MySQL;
+        PreparedStatement stmt;
+        
+        //TODO search in MedlinePlus 1st
+        
+        try {
+            connMySQL.setCatalog("umls_en");
+            
+            String query = "SELECT DEF FROM wikidef WHERE CUI = ?;";
+            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+            stmt.setString(1, concept.CUI);
+
+            ResultSet rs = stmt.executeQuery();
+            
+            if(rs.next()){
+                definition = rs.getString("DEF");
+            }
+            
+        } catch (SQLException ex) {
+            Logger.getLogger(TokenProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime) / 1000000;
+        System.out.println("PROCESSING FOR TOKEN " + concept.string + " (" + concept.CUI + ")" +": " + duration + " ms");
+               
+        return null;
+    }
+    
     private boolean acceptedSemanticType(ArrayList<String> tuis) {
         
         for(String tui: tuis){
