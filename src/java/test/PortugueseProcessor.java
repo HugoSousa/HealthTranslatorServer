@@ -19,7 +19,7 @@ import org.jactiveresource.Inflector;
  *
  * @author Hugo
  */
-public class PortugueseProcessor extends TokenProcessor {
+public class PortugueseProcessor extends ConceptProcessor {
 
     public PortugueseProcessor() {
         super();
@@ -215,7 +215,7 @@ public class PortugueseProcessor extends TokenProcessor {
             }
             
         } catch (SQLException ex) {
-            Logger.getLogger(TokenProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(ConceptProcessor.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         long endTime = System.nanoTime();

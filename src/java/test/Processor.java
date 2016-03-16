@@ -13,7 +13,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -23,9 +22,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.core.Context;
@@ -226,7 +222,7 @@ public class Processor {
         Elements elements = doc.body().children().select("*");
 
         String language = detectLanguage(elements);
-        TokenProcessor processor = null;
+        ConceptProcessor processor = null;
         switch (language) {
             case "en":
                 processor = englishProcessor;
@@ -344,13 +340,14 @@ public class Processor {
 
         long endTime = System.nanoTime();
         long duration = (endTime - startTime);// / 1000000;
-        System.out.println("BODY: " + doc.body().toString());
+        //System.out.println("BODY: " + doc.body().toString());
         ProcessResult result = new ProcessResult(doc.body().toString(), conceptCounter, duration);
         return result;
     }
 
     private String replaceConcept(Concept bestMatch) {
-        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.definition + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">click here for more information</a>' data-html='true' data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
+        String tooltip = "<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.definition + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">click here for more information</a>";
+        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
 
         return newString;
     }

@@ -5,6 +5,8 @@
  */
 package test;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,14 +14,23 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
 import opennlp.tools.util.Span;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.util.EntityUtils;
 import org.jactiveresource.Inflector;
 
 /**
  *
  * @author Hugo
  */
-public class EnglishProcessor extends TokenProcessor {
+public class EnglishProcessor extends ConceptProcessor {
 
     public EnglishProcessor() {
         super();
@@ -195,7 +206,7 @@ public class EnglishProcessor extends TokenProcessor {
             }
             
         } catch (SQLException ex) {
-            Logger.getLogger(TokenProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(ConceptProcessor.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         long endTime = System.nanoTime();
@@ -204,6 +215,97 @@ public class EnglishProcessor extends TokenProcessor {
                
         return null;
     }
+    
+    @Override
+    protected ArrayList<ExternalReference> getExternalReferences(String concept) {
+        
+        String SNOMEDCode = null;
+        
+        Connection connMySQL = ServletContextClass.conn_MySQL;
+        PreparedStatement stmt;
+        
+        try{
+            connMySQL.setCatalog("umls_en");
+            stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE STR = ? AND SAB = 'SNOMEDCT_US';", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt.setString(1, concept);
+            ResultSet rs = stmt.executeQuery();
+            
+            
+            if(! rs.next()){
+                //only CHV results
+                stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE STR = ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                stmt.setString(1, concept);
+                rs = stmt.executeQuery();
+                rs.next();
+                String CUI = rs.getString("CUI");
+                
+                //get the CUI from CHV and search for SNOMED concepts with that CUI
+                stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'SNOMEDCT_US';", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                stmt.setString(1, CUI);
+                rs = stmt.executeQuery();
+                
+                if(rs.next()){
+                    SNOMEDCode = rs.getString("SCUI");
+                }
+            }else{
+                SNOMEDCode = rs.getString("SCUI");
+            }
+        }catch (SQLException ex) {
+            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        
+        ArrayList<ExternalReference> medlinePlusReferences = getMedlinePlusReferences(SNOMEDCode);
+        //medlineplus
+        //healthfinder.gov
+        
+        return medlinePlusReferences;
+    }
+    
+    private ArrayList<ExternalReference> getMedlinePlusReferences(String SNOMEDCode){
+        
+        ArrayList<ExternalReference> result = new ArrayList<>();
+        
+        HttpGet httpGet = new HttpGet("https://apps.nlm.nih.gov/medlineplus/services/mpconnect_service.cfm?informationRecipient.languageCode.c=en&knowledgeResponseType=application/json&mainSearchCriteria.v.cs=2.16.840.1.113883.6.96&mainSearchCriteria.v.c=" + SNOMEDCode);
+        CloseableHttpResponse response1 = null;
+        try {
+            response1 = httpclient.execute(httpGet);
+        
+            //System.out.println(response1.getStatusLine());
+            HttpEntity entity1 = response1.getEntity();
+            String json = EntityUtils.toString(entity1, "UTF-8");
+            //System.out.println("JSON: " + json);
+
+            JsonReader reader = Json.createReader(new StringReader(json));
+            JsonObject obj = reader.readObject();
+            reader.close();
+            
+            JsonObject feed = obj.getJsonObject("feed");
+            JsonArray entry = feed.getJsonArray("entry");
+            
+            if(entry.size() >= 1){
+                JsonArray links = ((JsonObject)entry.get(0)).getJsonArray("link");
+                
+                for(JsonValue link: links){
+                    String url = ((JsonObject)link).getString("href");
+                    String label = ((JsonObject)link).getString("title");
+                    ExternalReference ref = new ExternalReference(url, label);
+                    result.add(ref);
+                }
+            }
+            EntityUtils.consume(entity1);
+        } catch (IOException ex) {
+            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                response1.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        return result;
+    }   
     
     private boolean acceptedSemanticType(ArrayList<String> tuis) {
         
@@ -214,5 +316,4 @@ public class EnglishProcessor extends TokenProcessor {
         
         return true;
     }
-
 }

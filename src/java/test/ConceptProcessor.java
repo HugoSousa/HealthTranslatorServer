@@ -5,18 +5,21 @@
  */
 package test;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.util.Span;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
 /**
  *
  * @author Hugo
  */
-public abstract class TokenProcessor {
+public abstract class ConceptProcessor {
     
     protected ConcurrentHashMap<String, String> stopwords;
     protected Tokenizer tokenizer; 
@@ -24,11 +27,12 @@ public abstract class TokenProcessor {
     protected Matcher punctuationMatcher;
     protected Matcher numberMatcher;
     protected String code;
+    protected CloseableHttpClient httpclient = HttpClients.createDefault();
     
     /**
      *
      */
-    public TokenProcessor(){
+    public ConceptProcessor(){
         Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
         punctuationMatcher = punctuationPattern.matcher("");
@@ -179,4 +183,8 @@ public abstract class TokenProcessor {
         return null;
         
     };
+    
+    protected ArrayList<ExternalReference> getExternalReferences(String concept){
+        return null;
+    }
 }

@@ -14,11 +14,20 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement
 public class BodyMessage {
+    //used in Processor & ConceptDetails
+    //in ConceptDetails, it represents the concept
     @XmlElement private String body;
+    
+    // used in ConceptDetails
+    @XmlElement private String language;
     
     public BodyMessage(){}
     
     public String getBody(){
         return body;
+    }
+    
+    public String getLanguage(){
+        return language;
     }
 }

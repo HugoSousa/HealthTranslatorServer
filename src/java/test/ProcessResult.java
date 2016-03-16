@@ -26,6 +26,5 @@ public class ProcessResult {
         this.conceptCounter = conceptCounter;
         this.processingTime = processingTime;
     }
-    
-    
+
 }
