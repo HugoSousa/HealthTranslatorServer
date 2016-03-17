@@ -273,7 +273,7 @@ public class Processor {
                                 //replace "'" so it doesn't break the tooltip html if the definition contains it
                                 String definition = processor.getDefinition(bestMatch);
                                 if(definition != null){
-                                    bestMatch.definition = definition.replace("'", "&#39;");
+                                    bestMatch.setDefinition(definition);
                                 }
                             }
 
@@ -346,7 +346,7 @@ public class Processor {
     }
 
     private String replaceConcept(Concept bestMatch) {
-        String tooltip = "<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.definition + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">click here for more information</a>";
+        String tooltip = "<p> CHV PREFERRED: " + bestMatch.getCHVPreferred() + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.getDefinition() + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">click here for more information</a>";
         String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
 
         return newString;

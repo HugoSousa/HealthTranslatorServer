@@ -63,14 +63,19 @@ public class EnglishProcessor extends ConceptProcessor {
             Span span = spans[initialIndex + j];
             String token = text.substring(span.getStart(), span.getEnd());
             tokens[j] = token;
-
+            
             String finalToken = "";
             if (j == 0) {
                 finalToken = token;
             } else if (j > 0) {
                 for (int k = 0; k <= j; k++) {
+                    //dont add a space if next token is "'s" <- incorrect tokenization
+                    if(tokens[k].equals("'s") && k > 0)
+                        finalToken = finalToken.substring(0,finalToken.length()-1);
+                    
                     finalToken += tokens[k];
                     if (k < j) {
+
                         finalToken += " ";
                     }
                 }
@@ -84,6 +89,9 @@ public class EnglishProcessor extends ConceptProcessor {
             } catch (Exception ex) {
                 Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
             }
+            
+            if(token.toLowerCase().equals("cushing's") || token.toLowerCase().equals("cushing"))
+                System.out.println("OI");
             
             punctuationMatcher.reset(token);
             numberMatcher.reset(token);
@@ -126,7 +134,7 @@ public class EnglishProcessor extends ConceptProcessor {
                             //assign the first result at least, so it's not null
                             CUI = rs.getString("CUI");
                         } else {
-                            if (rs.getString("CUI") != CUI && rs.getString("TTY").equals("PT")) {
+                            if ( (! rs.getString("CUI").equals(CUI)) && ( rs.getString("TTY").equals("PT") || rs.getString("TTY").equals("SY"))) {
                                 CUI = rs.getString("CUI");
                             }
                         }
@@ -164,7 +172,7 @@ public class EnglishProcessor extends ConceptProcessor {
                             */
                         }
 
-                        bestMatch.CHVPreferred = CHVPreferred;
+                        bestMatch.setCHVPreferred(CHVPreferred);
 
                     }
                 }
@@ -207,13 +215,15 @@ public class EnglishProcessor extends ConceptProcessor {
             
         } catch (SQLException ex) {
             Logger.getLogger(ConceptProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }catch (Exception ex) {
+            System.out.println(ex);
         }
         
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
-        System.out.println("PROCESSING FOR TOKEN " + concept.string + " (" + concept.CUI + ")" +": " + duration + " ms");
+        //System.out.println("PROCESSING FOR TOKEN " + concept.string + " (" + concept.CUI + ")" +": " + duration + " ms");
                
-        return null;
+        return definition;
     }
     
     @Override

@@ -17,8 +17,8 @@ public class Concept {
     public int words;
     public String CUI;
     
-    public String definition;
-    public String CHVPreferred;
+    private String definition;
+    private String CHVPreferred;
    
     
     public Concept(){}
@@ -27,5 +27,21 @@ public class Concept {
         this.string = string;
         this.span = span;
         this.words = words;
+    }
+    
+    public void setDefinition(String definition){
+        this.definition = definition.replace("'", "&#39;");
+    }
+    
+    public void setCHVPreferred(String CHVPreferred){
+        this.CHVPreferred = CHVPreferred.replace("'", "&#39;");
+    }
+    
+    public String getDefinition(){
+        return definition;
+    }
+    
+    public String getCHVPreferred(){
+        return CHVPreferred;
     }
 }

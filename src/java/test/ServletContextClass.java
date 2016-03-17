@@ -22,6 +22,7 @@ public class ServletContextClass implements ServletContextListener{
     
     public static Connection conn_MySQL;
 
+    @Override
     public void contextInitialized(ServletContextEvent arg0) 
     {
         System.out.println("CONTEXT INITIALIZED HERE!");

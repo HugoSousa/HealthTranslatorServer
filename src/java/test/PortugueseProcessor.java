@@ -169,7 +169,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                         (TUIPreferred != -1 && acceptedSemanticType(tuis.get(TUIPreferred)))){
                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
-                        bestMatch.CHVPreferred = CHVPreferred;
+                        bestMatch.setCHVPreferred(CHVPreferred);
                         
                         /*
                         if (CHVPreferred == null) {
