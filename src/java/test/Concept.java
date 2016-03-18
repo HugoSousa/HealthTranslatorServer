@@ -34,7 +34,9 @@ public class Concept {
     }
     
     public void setCHVPreferred(String CHVPreferred){
-        this.CHVPreferred = CHVPreferred.replace("'", "&#39;");
+        if(CHVPreferred != null){
+            this.CHVPreferred = CHVPreferred.replace("'", "&#39;");
+        }
     }
     
     public String getDefinition(){

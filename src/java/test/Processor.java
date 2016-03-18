@@ -13,10 +13,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,6 +44,8 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
+import rufus.lzstring4java.LZString;
+
 
 /**
  * REST Web Service
@@ -200,13 +206,19 @@ public class Processor {
     @Consumes("application/json")
     public ProcessResult test(BodyMessage param) {
         System.out.println("Starting Processing");
-
+        SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss.SSS");
+        Date date = new Date();
+        System.out.println(SDF.format(date));
+         
+        String decompressed = LZString.decompressFromUTF16(param.getBody());
+        //System.out.println("DECOMPRESSED: " + decompressed);
+        
         long startTime = System.nanoTime();
-        ProcessResult result = processDocumentV2(param.getBody());
+        ProcessResult result = processDocumentV2(decompressed);
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("DURATION: " + duration + " ms");
-
+        
         return result;
     }
 
@@ -339,7 +351,7 @@ public class Processor {
         }
 
         long endTime = System.nanoTime();
-        long duration = (endTime - startTime);// / 1000000;
+        long duration = (endTime - startTime)/1000000;// / 1000000;
         //System.out.println("BODY: " + doc.body().toString());
         ProcessResult result = new ProcessResult(doc.body().toString(), conceptCounter, duration);
         return result;
@@ -406,5 +418,31 @@ public class Processor {
         return semanticTypes.contains(sty);
     }
 
-
+    public static String decompress(List<Integer> compressed) {
+        // Build the dictionary.
+        int dictSize = 256;
+        Map<Integer,String> dictionary = new HashMap<Integer,String>();
+        for (int i = 0; i < 256; i++)
+            dictionary.put(i, "" + (char)i);
+ 
+        String w = "" + (char)(int)compressed.remove(0);
+        StringBuffer result = new StringBuffer(w);
+        for (int k : compressed) {
+            String entry;
+            if (dictionary.containsKey(k))
+                entry = dictionary.get(k);
+            else if (k == dictSize)
+                entry = w + w.charAt(0);
+            else
+                throw new IllegalArgumentException("Bad compressed k: " + k);
+ 
+            result.append(entry);
+ 
+            // Add w+entry[0] to the dictionary.
+            dictionary.put(dictSize++, w + entry.charAt(0));
+ 
+            w = entry;
+        }
+        return result.toString();
+    }
 }

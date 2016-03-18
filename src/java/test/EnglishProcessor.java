@@ -90,9 +90,6 @@ public class EnglishProcessor extends ConceptProcessor {
                 Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
             }
             
-            if(token.toLowerCase().equals("cushing's") || token.toLowerCase().equals("cushing"))
-                System.out.println("OI");
-            
             punctuationMatcher.reset(token);
             numberMatcher.reset(token);
             if (j == 0 && (queryToken.length() <= 2 || stopwords.containsKey(queryToken))) {
