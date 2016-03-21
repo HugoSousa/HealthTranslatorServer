@@ -307,7 +307,7 @@ public class Processor {
                                     }
                                 }
 
-                                String replace = replaceConcept(bestMatch);
+                                String replace = replaceConcept(bestMatch, language);
                                 splitText.add(replace);
 
                                 lastFound = bestMatch;
@@ -361,9 +361,9 @@ public class Processor {
         return result;
     }
 
-    private String replaceConcept(Concept bestMatch) {
+    private String replaceConcept(Concept bestMatch, String language) {
         String tooltip = "<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.definition + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">click here for more information</a>";
-        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
+        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
 
         return newString;
     }
