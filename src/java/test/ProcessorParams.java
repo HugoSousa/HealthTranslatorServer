@@ -13,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @author Hugo
  */
 @XmlRootElement
-public class BodyMessage {
+public class ProcessorParams {
     //used in Processor & ConceptDetails
     //in ConceptDetails, it represents the concept
     @XmlElement private String body;
@@ -21,7 +21,7 @@ public class BodyMessage {
     // used in ConceptDetails
     @XmlElement private String language;
     
-    public BodyMessage(){}
+    public ProcessorParams(){}
     
     public String getBody(){
         return body;

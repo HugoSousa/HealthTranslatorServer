@@ -184,7 +184,7 @@ public abstract class ConceptProcessor {
         
     };
     
-    protected ArrayList<ExternalReference> getExternalReferences(String concept){
+    protected ArrayList<ExternalReference> getExternalReferences(Concept concept){
         return null;
     }
 }

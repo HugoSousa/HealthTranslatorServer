@@ -25,6 +25,10 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
 import org.jactiveresource.Inflector;
+import org.jsoup.Connection.Response;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 /**
  *
@@ -219,12 +223,27 @@ public class EnglishProcessor extends ConceptProcessor {
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         //System.out.println("PROCESSING FOR TOKEN " + concept.string + " (" + concept.CUI + ")" +": " + duration + " ms");
-               
+        //getExternalReferences(concept);
+        
         return definition;
     }
     
     @Override
-    protected ArrayList<ExternalReference> getExternalReferences(String concept) {
+    protected ArrayList<ExternalReference> getExternalReferences(Concept concept) {
+        
+        String SNOMEDCode = getSNOMEDCode(concept);
+        ArrayList<ExternalReference> medlinePlusReferences = getMedlinePlusReferences(SNOMEDCode);
+        ArrayList<ExternalReference> healthFinderReferences = getHealthFinderReference(concept.string);
+        //ExternalReference BMJReference = getBMJReference(concept.string);
+        
+        ArrayList<ExternalReference> resultList = new ArrayList<>();
+        resultList.addAll(medlinePlusReferences);
+        resultList.addAll(healthFinderReferences);
+        
+        return resultList;
+    }
+    
+    private String getSNOMEDCode(Concept concept){
         
         String SNOMEDCode = null;
         
@@ -233,40 +252,19 @@ public class EnglishProcessor extends ConceptProcessor {
         
         try{
             connMySQL.setCatalog("umls_en");
-            stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE STR = ? AND SAB = 'SNOMEDCT_US';", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            stmt.setString(1, concept);
+            stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'SNOMEDCT_US';", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt.setString(1, concept.CUI);
             ResultSet rs = stmt.executeQuery();
             
-            
-            if(! rs.next()){
-                //only CHV results
-                stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE STR = ?;", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                stmt.setString(1, concept);
-                rs = stmt.executeQuery();
-                rs.next();
-                String CUI = rs.getString("CUI");
-                
-                //get the CUI from CHV and search for SNOMED concepts with that CUI
-                stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'SNOMEDCT_US';", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                stmt.setString(1, CUI);
-                rs = stmt.executeQuery();
-                
-                if(rs.next()){
+            while(rs.next()){
+                if(SNOMEDCode == null || (SNOMEDCode != null && rs.getString("TTY").equals("PT")))
                     SNOMEDCode = rs.getString("SCUI");
-                }
-            }else{
-                SNOMEDCode = rs.getString("SCUI");
             }
         }catch (SQLException ex) {
             Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        
-        ArrayList<ExternalReference> medlinePlusReferences = getMedlinePlusReferences(SNOMEDCode);
-        //medlineplus
-        //healthfinder.gov
-        
-        return medlinePlusReferences;
+        return SNOMEDCode;
     }
     
     private ArrayList<ExternalReference> getMedlinePlusReferences(String SNOMEDCode){
@@ -296,7 +294,7 @@ public class EnglishProcessor extends ConceptProcessor {
                 for(JsonValue link: links){
                     String url = ((JsonObject)link).getString("href");
                     String label = ((JsonObject)link).getString("title");
-                    ExternalReference ref = new ExternalReference(url, label);
+                    ExternalReference ref = new ExternalReference(url, label, "MedlinePlus");
                     result.add(ref);
                 }
             }
@@ -313,6 +311,76 @@ public class EnglishProcessor extends ConceptProcessor {
         
         return result;
     }   
+    
+    private ArrayList<ExternalReference> getHealthFinderReference(String concept){
+        
+        ArrayList<ExternalReference> result = new ArrayList<>();
+        
+        concept = concept.replaceAll(" ", "%20");
+        HttpGet httpGet = new HttpGet("http://healthfinder.gov/developer/Search.json?api_key=nqmqcoaowrbqxksg&keyword=%22" + concept +"%22");
+        CloseableHttpResponse response1 = null;
+        try {
+            response1 = httpclient.execute(httpGet);
+        
+            //System.out.println(response1.getStatusLine());
+            HttpEntity entity1 = response1.getEntity();
+            String json = EntityUtils.toString(entity1, "UTF-8");
+            //System.out.println("JSON: " + json);
+
+            JsonReader reader = Json.createReader(new StringReader(json));
+            JsonObject obj = reader.readObject();
+            reader.close();            
+           
+            JsonObject res = obj.getJsonObject("Result");
+            String total = res.getString("Total");
+                
+            if(Integer.parseInt(total) > 0){
+                
+                JsonArray topics = res.getJsonArray("Topics");
+
+                for(JsonValue topic: topics){
+                    String url = ((JsonObject)topic).getString("AccessibleVersion");
+                    String label = ((JsonObject)topic).getString("Title");
+                    ExternalReference ref = new ExternalReference(url, label, "Healthfinder");
+                    result.add(ref);
+                }
+            }
+            EntityUtils.consume(entity1);
+        } catch (IOException ex) {
+            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                response1.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        return result;
+    }
+    
+    private ExternalReference getBMJReference(String concept){
+        
+        try {
+            concept = concept.replaceAll(" ", "%20");
+            Document doc = Jsoup.connect("http://bestpractice.bmj.com/best-practice/search.html?searchableText=%22" + concept + "%22").followRedirects(false).get();
+            Response response = Jsoup.connect("http://bestpractice.bmj.com/best-practice/search.html?searchableText=%22" + concept + "%22").followRedirects(false).execute();
+            System.out.println(response.url());
+            
+            System.out.println("DOC: " + doc.body());
+            Element result = doc.select("#content ul.nav-tabs li.selected a").first();
+            
+            if(result != null){
+                String resultString = result.text();
+            }
+            
+            //get #content ul.nav-tabs li.selected a (text)
+        } catch (IOException ex) {
+            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return null;
+    }
     
     private boolean acceptedSemanticType(ArrayList<String> tuis) {
         

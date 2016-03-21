@@ -28,10 +28,11 @@ public class ConceptDetails {
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public ConceptDetailsResult test(BodyMessage param) {
+    public ConceptDetailsResult test(ConceptDetailsParams param) {
         
-        String concept = param.getBody();
-        String language = param.getLanguage();
+        String cui = param.cui;
+        String string = param.string;
+        String language = param.language;
         
         ConceptProcessor processor = null;
         switch (language) {
@@ -47,12 +48,17 @@ public class ConceptDetails {
         }
         
         //processor.getDefinition();
+        Concept concept = new Concept();
+        concept.CUI = cui;
+        concept.string = string;
         ArrayList<ExternalReference> externalReferences = processor.getExternalReferences(concept);
         //processor.getRelationships();
         
+        //send semantic type
         //send the definition (probably bigger...?)
         //send external references
         //send relationships
+        
         
         ConceptDetailsResult result = new ConceptDetailsResult(externalReferences);
         return result;

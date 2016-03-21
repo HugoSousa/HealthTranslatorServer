@@ -204,13 +204,17 @@ public class Processor {
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public ProcessResult test(BodyMessage param) {
+    public ProcessResult test(ProcessorParams param) {
         System.out.println("Starting Processing");
         SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss.SSS");
         Date date = new Date();
         System.out.println(SDF.format(date));
-         
+        
+        long startTimeX = System.nanoTime();
         String decompressed = LZString.decompressFromUTF16(param.getBody());
+        long endTimeX = System.nanoTime();
+        long durationX = (endTimeX - startTimeX) / 1000000;
+        System.out.println("DURATION TO DECOMPRESS: " + durationX + " ms");
         //System.out.println("DECOMPRESSED: " + decompressed);
         
         long startTime = System.nanoTime();
@@ -358,8 +362,8 @@ public class Processor {
     }
 
     private String replaceConcept(Concept bestMatch) {
-        String tooltip = "<p> CHV PREFERRED: " + bestMatch.getCHVPreferred() + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.getDefinition() + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#myModal\">click here for more information</a>";
-        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
+        String tooltip = "<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.definition + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">click here for more information</a>";
+        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
 
         return newString;
     }
@@ -416,33 +420,5 @@ public class Processor {
 
     protected boolean acceptedSemanticType(String sty) {
         return semanticTypes.contains(sty);
-    }
-
-    public static String decompress(List<Integer> compressed) {
-        // Build the dictionary.
-        int dictSize = 256;
-        Map<Integer,String> dictionary = new HashMap<Integer,String>();
-        for (int i = 0; i < 256; i++)
-            dictionary.put(i, "" + (char)i);
- 
-        String w = "" + (char)(int)compressed.remove(0);
-        StringBuffer result = new StringBuffer(w);
-        for (int k : compressed) {
-            String entry;
-            if (dictionary.containsKey(k))
-                entry = dictionary.get(k);
-            else if (k == dictSize)
-                entry = w + w.charAt(0);
-            else
-                throw new IllegalArgumentException("Bad compressed k: " + k);
- 
-            result.append(entry);
- 
-            // Add w+entry[0] to the dictionary.
-            dictionary.put(dictSize++, w + entry.charAt(0));
- 
-            w = entry;
-        }
-        return result.toString();
     }
 }

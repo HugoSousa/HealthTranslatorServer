@@ -17,8 +17,8 @@ public class Concept {
     public int words;
     public String CUI;
     
-    private String definition;
-    private String CHVPreferred;
+    public String definition;
+    public String CHVPreferred;
    
     
     public Concept(){}
@@ -37,13 +37,5 @@ public class Concept {
         if(CHVPreferred != null){
             this.CHVPreferred = CHVPreferred.replace("'", "&#39;");
         }
-    }
-    
-    public String getDefinition(){
-        return definition;
-    }
-    
-    public String getCHVPreferred(){
-        return CHVPreferred;
     }
 }

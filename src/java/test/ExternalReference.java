@@ -12,9 +12,11 @@ package test;
 public class ExternalReference {
     public String url;
     public String label;
+    public String source;
     
-    public ExternalReference(String url, String label){
+    public ExternalReference(String url, String label, String source){
         this.url = url;
         this.label = label;
+        this.source = source;
     }
 }

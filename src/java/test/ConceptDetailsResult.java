@@ -16,6 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class ConceptDetailsResult {
     
+    @XmlElement private String definition;
     @XmlElement private ArrayList<ExternalReference> refs;
     
     public ConceptDetailsResult(){}
