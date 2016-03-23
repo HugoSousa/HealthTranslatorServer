@@ -7,6 +7,7 @@ package test;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,6 +30,7 @@ import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 /**
  *
@@ -198,21 +200,29 @@ public class EnglishProcessor extends ConceptProcessor {
         Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
         
-        //TODO search in MedlinePlus 1st
-        
         try {
             connMySQL.setCatalog("umls_en");
-            
-            String query = "SELECT DEF FROM wikidef WHERE CUI = ?;";
-            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-
+        
+        //TODO search in MedlinePlus 1st
+            /*
+            stmt = connMySQL.prepareStatement("SELECT DEF FROM MRDEF WHERE CUI = ? AND SAB = 'MEDLINEPLUS'", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             stmt.setString(1, concept.CUI);
-
             ResultSet rs = stmt.executeQuery();
-            
             if(rs.next()){
                 definition = rs.getString("DEF");
-            }
+            }else{
+            */
+                String query = "SELECT DEF FROM wikidef WHERE CUI = ?;";
+                stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+                stmt.setString(1, concept.CUI);
+
+                ResultSet rs = stmt.executeQuery();
+
+                if(rs.next()){
+                    definition = rs.getString("DEF");
+                }
+            //}
             
         } catch (SQLException ex) {
             Logger.getLogger(ConceptProcessor.class.getName()).log(Level.SEVERE, null, ex);
@@ -233,12 +243,17 @@ public class EnglishProcessor extends ConceptProcessor {
         
         String SNOMEDCode = getSNOMEDCode(concept);
         ArrayList<ExternalReference> medlinePlusReferences = getMedlinePlusReferences(SNOMEDCode);
-        ArrayList<ExternalReference> healthFinderReferences = getHealthFinderReference(concept.string);
+        ArrayList<ExternalReference> healthFinderReferences = getHealthFinderReferences(concept.string);
         //ExternalReference BMJReference = getBMJReference(concept.string);
+        //ArrayList<ExternalReference> healthlineReferences = getHealthlineReferences(concept.string);
+        ArrayList<ExternalReference> mayoClinicReferences = getMayoClinicReferences(concept.string);
+        ArrayList<ExternalReference> NIHReferences = getNIHReferences(concept.string);
         
         ArrayList<ExternalReference> resultList = new ArrayList<>();
         resultList.addAll(medlinePlusReferences);
         resultList.addAll(healthFinderReferences);
+        resultList.addAll(mayoClinicReferences);
+        resultList.addAll(NIHReferences);
         
         return resultList;
     }
@@ -312,7 +327,7 @@ public class EnglishProcessor extends ConceptProcessor {
         return result;
     }   
     
-    private ArrayList<ExternalReference> getHealthFinderReference(String concept){
+    private ArrayList<ExternalReference> getHealthFinderReferences(String concept){
         
         ArrayList<ExternalReference> result = new ArrayList<>();
         
@@ -336,14 +351,26 @@ public class EnglishProcessor extends ConceptProcessor {
                 
             if(Integer.parseInt(total) > 0){
                 
-                JsonArray topics = res.getJsonArray("Topics");
-
-                for(JsonValue topic: topics){
-                    String url = ((JsonObject)topic).getString("AccessibleVersion");
-                    String label = ((JsonObject)topic).getString("Title");
+                //if only 1 topic, return a JsonObject. Otherwise, returns JsonArray
+                try{
+                    JsonArray topics = res.getJsonArray("Topics");
+                    
+                    for(JsonValue topic: topics){
+                        String url = ((JsonObject)topic).getString("AccessibleVersion");
+                        String label = ((JsonObject)topic).getString("Title");
+                        ExternalReference ref = new ExternalReference(url, label, "Healthfinder");
+                        result.add(ref);
+                    }
+                }catch(java.lang.ClassCastException ex){
+                    JsonObject topic = res.getJsonObject("Topics");
+                    
+                    String url = topic.getString("AccessibleVersion");
+                    String label = topic.getString("Title");
                     ExternalReference ref = new ExternalReference(url, label, "Healthfinder");
                     result.add(ref);
                 }
+
+                
             }
             EntityUtils.consume(entity1);
         } catch (IOException ex) {
@@ -368,10 +395,10 @@ public class EnglishProcessor extends ConceptProcessor {
             System.out.println(response.url());
             
             System.out.println("DOC: " + doc.body());
-            Element result = doc.select("#content ul.nav-tabs li.selected a").first();
+            Element elem = doc.select("#content ul.nav-tabs li.selected a").first();
             
-            if(result != null){
-                String resultString = result.text();
+            if(elem != null){
+                String resultString = elem.text();
             }
             
             //get #content ul.nav-tabs li.selected a (text)
@@ -380,6 +407,95 @@ public class EnglishProcessor extends ConceptProcessor {
         }
         
         return null;
+    }
+    
+    private ArrayList<ExternalReference> getHealthlineReferences(String concept){
+        //THE RESULTS ARE LOADED DYNAMICALLY, SO JSOUP DOESN'T WORK
+        
+        ArrayList<ExternalReference> result = new ArrayList<> ();
+        
+        try {
+            concept = URLEncoder.encode(concept, "utf-8");//concept.replaceAll(" ", "%20");
+            //Document doc = Jsoup.connect("http://www.healthline.com/search?q1=" + concept ).get();
+            Response response = Jsoup.connect("http://www.healthline.com/search?q1=" + concept ).execute();
+            System.out.println(response.url());
+            
+            /*
+            System.out.println("DOC: " + doc.body());
+            Element elem = doc.select("#___gcse_1 div.gsc-wrapper div.gsc-resultsbox-visible table.gsc-table-result td.gsc-table-cell-snippet-close a.gs-title").first();
+            
+            if(elem != null){
+                String url = elem.attr("data-ctorig");
+                String label = elem.text();
+                ExternalReference ref = new ExternalReference(url, label, "healthline");
+                result.add(ref);
+                //String resultString = elem.text();
+            }
+                    */
+        } catch (IOException ex) {
+            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return result;
+    }
+    
+    private ArrayList<ExternalReference> getMayoClinicReferences(String concept){
+        
+        ArrayList<ExternalReference> result = new ArrayList<> ();
+        
+        try {
+            concept = URLEncoder.encode(concept, "utf-8");
+            Document doc = Jsoup.connect("http://www.mayoclinic.org/search/search-results?site=patient-care&q=" + concept ).get();
+                    
+            Element elem = doc.select("div#mayo-wrapper div#main-content div.directory li h3 a").first();
+            
+            if(elem != null){
+                String url = elem.attr("href");
+                String label = elem.text();
+                
+                //remove "- Mayo Clinic" from the label
+                int i = label.indexOf("- Mayo Clinic");
+                if(i != -1){
+                    label = label.substring(0, i);
+                }
+                
+                ExternalReference ref = new ExternalReference(url, label, "Mayo Clinic");
+                result.add(ref);
+            }
+                    
+        } catch (IOException ex) {
+            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return result;
+    }
+    
+    private ArrayList<ExternalReference> getNIHReferences(String concept){
+                
+        ArrayList<ExternalReference> result = new ArrayList<> ();
+        
+        try {
+            concept = URLEncoder.encode(concept, "utf-8");
+            Document doc = Jsoup.connect("http://search.nih.gov/search?utf8=%E2%9C%93&affiliate=hip&query=" + concept ).get();
+                    
+            Elements elems = doc.select("#best-bets div.boosted-content");
+            
+            if(elems != null){
+                for(Element elem: elems){
+                    Element a = elem.select("h4.title a").first();
+                    String url = a.attr("href");
+                    String label = a.text();
+                    
+                    ExternalReference ref = new ExternalReference(url, label, "NIH Health Information");
+                    result.add(ref);
+                }
+            }
+                    
+        } catch (IOException ex) {
+            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return result;
     }
     
     private boolean acceptedSemanticType(ArrayList<String> tuis) {

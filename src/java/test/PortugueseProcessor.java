@@ -5,6 +5,8 @@
  */
 package test;
 
+import java.io.IOException;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,6 +16,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import opennlp.tools.util.Span;
 import org.jactiveresource.Inflector;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 /**
  *
@@ -192,7 +197,7 @@ public class PortugueseProcessor extends ConceptProcessor {
     
     @Override
     protected String getDefinition(Concept concept) {
-        
+        /*
         long startTime = System.nanoTime();
         
         String definition = null;
@@ -221,8 +226,44 @@ public class PortugueseProcessor extends ConceptProcessor {
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("PROCESSING FOR TOKEN " + concept.string + " (" + concept.CUI + ")" +": " + duration + " ms");
-               
+        */
         return null;
+    }
+    
+    @Override
+    protected ArrayList<ExternalReference> getExternalReferences(Concept concept) {
+        
+        ArrayList<ExternalReference> infopediaReferences = getInfopediaReferences(concept.string);
+        
+        ArrayList<ExternalReference> resultList = new ArrayList<>();
+        resultList.addAll(infopediaReferences);
+        
+        return resultList;
+    }
+    
+    private ArrayList<ExternalReference> getInfopediaReferences(String concept){
+        
+        ArrayList<ExternalReference> result = new ArrayList<> ();
+        
+        try {
+            concept = URLEncoder.encode(concept, "utf-8");
+            String url = "http://www.infopedia.pt/dicionarios/termos-medicos/" + concept;
+            Document doc = Jsoup.connect(url).get();
+                    
+            Element elem = doc.select("#infoCliqueContainer").first();
+            
+            if(elem != null){
+                String label = elem.select("span.dolEntrinfoEntrada").first().text();
+                
+                ExternalReference ref = new ExternalReference(url, label, "Infopedia");
+                result.add(ref);
+            }
+                    
+        } catch (IOException ex) {
+            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return result;
     }
     
     private boolean allResultsFromCHV(ResultSet rs){
