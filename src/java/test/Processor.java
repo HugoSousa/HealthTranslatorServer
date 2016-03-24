@@ -72,6 +72,8 @@ public class Processor {
 
     //size of the text that is considered as a chunk to be used in language detection
     private int THRESHOLD_TEXT_SIZE = 100;
+    
+    private int MAX_RETRIES = 3;
 
     private final EnglishProcessor englishProcessor = new EnglishProcessor();
     private final PortugueseProcessor portugueseProcessor = new PortugueseProcessor();
@@ -205,6 +207,7 @@ public class Processor {
     @Produces("application/json")
     @Consumes("application/json")
     public ProcessResult test(ProcessorParams param) {
+        
         System.out.println("Starting Processing");
         SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss.SSS");
         Date date = new Date();
@@ -363,7 +366,7 @@ public class Processor {
 
     private String replaceConcept(Concept bestMatch, String language) {
         String tooltip = "<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.definition + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">click here for more information</a>";
-        String newString = "<span style='display:inline' class='health-translator'><span class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</span></span>";
+        String newString = "<x-health-translator style='display:inline' class='health-translator'><x-health-translator class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</x-health-translator></x-health-translator>";
 
         return newString;
     }
@@ -371,8 +374,8 @@ public class Processor {
     private String detectLanguage(Elements elements) {
         //do a first iteration over elements (text) to detect language
         boolean successfulDetection;
-        do {
-
+        int tries = 0;
+        do {   
             Detector detector = null;
             try {
                 detector = DetectorFactory.create();
@@ -413,8 +416,11 @@ public class Processor {
                     Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-        } while (!successfulDetection);
-
+            
+            tries++;
+            
+        } while (!successfulDetection && tries < MAX_RETRIES);
+        
         return "en";
     }
 
