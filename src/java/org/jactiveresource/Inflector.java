@@ -39,6 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import test.LoggerFactory;
 
 /**
  * a port of the excellent Inflector class in ruby's ActiveSupport library
@@ -307,27 +308,27 @@ public class Inflector {
         }
     }
 
-    private static ArrayList<ReplacementRule> pluralsEN;
-    private static ArrayList<ReplacementRule> singularsEN;
-    private static ArrayList<String> uncountablesEN;
-    private static ArrayList<String> irregularSingularsEN;
-    private static ArrayList<String> irregularPluralsEN;
+    private static final ArrayList<ReplacementRule> pluralsEN;
+    private static final ArrayList<ReplacementRule> singularsEN;
+    private static final ArrayList<String> uncountablesEN;
+    private static final ArrayList<String> irregularSingularsEN;
+    private static final ArrayList<String> irregularPluralsEN;
 
-    private static ArrayList<ReplacementRule> pluralsPT;
-    private static ArrayList<ReplacementRule> singularsPT;
-    private static ArrayList<String> uncountablesPT;
-    private static ArrayList<String> irregularSingularsPT;
-    private static ArrayList<String> irregularPluralsPT;
+    private static final ArrayList<ReplacementRule> pluralsPT;
+    private static final ArrayList<ReplacementRule> singularsPT;
+    private static final ArrayList<String> uncountablesPT;
+    private static final ArrayList<String> irregularSingularsPT;
+    private static final ArrayList<String> irregularPluralsPT;
 
     private static ArrayList<String> languages;
 
     static {
-            languages = new ArrayList<String>( 2 );
+            languages = new ArrayList<>( 2 );
             languages.add( "en" );
             languages.add( "pt" );
             
             
-            pluralsEN = new ArrayList<ReplacementRule>( 17 );
+            pluralsEN = new ArrayList<>( 17 );
             pluralsEN.add( 0, new ReplacementRule( "$", "s" ) );
             pluralsEN.add( 0, new ReplacementRule( "(?i)s$", "s" ) );
             pluralsEN.add( 0, new ReplacementRule( "(?i)(ax|test)is$", "$1es" ) );
@@ -346,7 +347,7 @@ public class Inflector {
             pluralsEN.add( 0, new ReplacementRule( "^(?i)(ox)$", "$1en" ) );
             pluralsEN.add( 0, new ReplacementRule( "(?i)(quiz)$", "$1zes" ) );
             
-            singularsEN = new ArrayList<ReplacementRule>( 24 );
+            singularsEN = new ArrayList<>( 24 );
             singularsEN.add( 0, new ReplacementRule( "s$", "" ) );
             singularsEN.add( 0, new ReplacementRule( "(n)ews$", "$1ews" ) );
             singularsEN.add( 0, new ReplacementRule( "([ti])a$", "$1um" ) );
@@ -372,7 +373,7 @@ public class Inflector {
             singularsEN.add( 0, new ReplacementRule( "(matr)ices$", "$1ix" ) );
             singularsEN.add( 0, new ReplacementRule( "(quiz)zes$", "$1" ) );
             
-            uncountablesEN = new ArrayList<String>( 10 );
+            uncountablesEN = new ArrayList<>( 10 );
             uncountablesEN.add( "equipment" );
             uncountablesEN.add( "information" );
             uncountablesEN.add( "rice" );
@@ -385,7 +386,7 @@ public class Inflector {
             uncountablesEN.add( "status" );
             
             
-            pluralsPT = new ArrayList<ReplacementRule>( 20 );
+            pluralsPT = new ArrayList<>( 20 );
             pluralsPT.add( 0, new ReplacementRule( "$",  "s") );
             pluralsPT.add( 0, new ReplacementRule( "(s)$", "$1" ) );
             pluralsPT.add( 0, new ReplacementRule( "^(paí)s$", "$1ses") );
@@ -408,7 +409,7 @@ public class Inflector {
             pluralsPT.add( 0, new ReplacementRule( "^(irm|m)ao$",  "$1aos") );
             pluralsPT.add( 0, new ReplacementRule( "^(alem|c|p)ao$",  "$1aes") );
             
-            singularsPT = new ArrayList<ReplacementRule>( 19 );
+            singularsPT = new ArrayList<>( 19 );
             singularsPT.add( 0, new ReplacementRule( "([^ê])s$", "$1" ) );
             singularsPT.add( 0, new ReplacementRule( "^(á|gá|paí)s$", "$1s" ) );
             singularsPT.add( 0, new ReplacementRule( "(r|z)es$", "$1" ) );
@@ -429,7 +430,7 @@ public class Inflector {
             singularsPT.add( 0, new ReplacementRule( "(japon|escoc|ingl|dinamarqu|fregu|portugu)eses$", "$1ês" ) );
             singularsPT.add( 0, new ReplacementRule( "^(g|)ases$", "$1ás" ) );
             
-            uncountablesPT = new ArrayList<String>( 6 );
+            uncountablesPT = new ArrayList<>( 6 );
             uncountablesPT.add( "tórax" );
             uncountablesPT.add( "tênis" );
             uncountablesPT.add( "ônibus" );
@@ -452,7 +453,10 @@ public class Inflector {
             
             irregular( "país", "países", "pt");
         } catch (InvalidLanguageException ex) {
-            Logger.getLogger(Inflector.class.getName()).log(Level.SEVERE, null, ex);
+            
+            Logger logger = LoggerFactory.createLogger(Inflector.class.getName());
+            
+            logger.log(Level.SEVERE, null, ex);
         }
     }
 }

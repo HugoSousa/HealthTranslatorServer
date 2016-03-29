@@ -21,11 +21,15 @@ public class ServletContextClass implements ServletContextListener{
     //public static Connection conn;
     
     public static Connection conn_MySQL;
+    
+    private static Logger logger;
 
     @Override
     public void contextInitialized(ServletContextEvent arg0) 
     {
         System.out.println("CONTEXT INITIALIZED HERE!");
+        
+        logger = LoggerFactory.createLogger(ServletContextClass.class.getName());
         /*
         try {
             Class.forName("org.postgresql.Driver");
@@ -46,10 +50,10 @@ public class ServletContextClass implements ServletContextListener{
             conn_MySQL = DriverManager.getConnection(url, "root", "");
            
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, null, e);
             System.exit(1);
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, null, e);
             System.exit(2);
         }
         
@@ -59,13 +63,14 @@ public class ServletContextClass implements ServletContextListener{
     }
 
 
+    @Override
     public void contextDestroyed(ServletContextEvent arg0) 
     {
         try {       
             if(conn_MySQL != null)
                 conn_MySQL.close();
         } catch (SQLException ex) {
-            Logger.getLogger(ServletContextClass.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
     }
 

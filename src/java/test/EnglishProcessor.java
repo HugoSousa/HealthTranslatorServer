@@ -38,9 +38,13 @@ import org.jsoup.select.Elements;
  */
 public class EnglishProcessor extends ConceptProcessor {
 
+    private static Logger logger; 
+    
     public EnglishProcessor() {
         super();
         code = "en";
+        
+        logger = LoggerFactory.createLogger(EnglishProcessor.class.getName());
     }
 
     /**
@@ -93,7 +97,7 @@ public class EnglishProcessor extends ConceptProcessor {
             try {
                 singularQueryToken = Inflector.singularize(queryToken, "en");
             } catch (Exception ex) {
-                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, null, ex);
             }
             
             punctuationMatcher.reset(token);
@@ -183,7 +187,7 @@ public class EnglishProcessor extends ConceptProcessor {
                 stmt.close();
                 rs.close();
             } catch (SQLException ex) {
-                Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, null, ex);
             }
         }        
         
@@ -225,9 +229,9 @@ public class EnglishProcessor extends ConceptProcessor {
             //}
             
         } catch (SQLException ex) {
-            Logger.getLogger(ConceptProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }catch (Exception ex) {
-            System.out.println(ex);
+            logger.log(Level.SEVERE, null, ex);
         }
         
         long endTime = System.nanoTime();
@@ -276,7 +280,7 @@ public class EnglishProcessor extends ConceptProcessor {
                     SNOMEDCode = rs.getString("SCUI");
             }
         }catch (SQLException ex) {
-            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
         
         return SNOMEDCode;
@@ -315,12 +319,12 @@ public class EnglishProcessor extends ConceptProcessor {
             }
             EntityUtils.consume(entity1);
         } catch (IOException ex) {
-            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         } finally {
             try {
                 response1.close();
             } catch (IOException ex) {
-                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, null, ex);
             }
         }
         
@@ -374,12 +378,12 @@ public class EnglishProcessor extends ConceptProcessor {
             }
             EntityUtils.consume(entity1);
         } catch (IOException ex) {
-            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         } finally {
             try {
                 response1.close();
             } catch (IOException ex) {
-                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, null, ex);
             }
         }
         
@@ -401,9 +405,8 @@ public class EnglishProcessor extends ConceptProcessor {
                 String resultString = elem.text();
             }
             
-            //get #content ul.nav-tabs li.selected a (text)
         } catch (IOException ex) {
-            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
         
         return null;
@@ -433,7 +436,7 @@ public class EnglishProcessor extends ConceptProcessor {
             }
                     */
         } catch (IOException ex) {
-            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
         
         return result;
@@ -464,7 +467,7 @@ public class EnglishProcessor extends ConceptProcessor {
             }
                     
         } catch (IOException ex) {
-            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
         
         return result;
@@ -492,7 +495,7 @@ public class EnglishProcessor extends ConceptProcessor {
             }
                     
         } catch (IOException ex) {
-            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
         
         return result;

@@ -25,10 +25,14 @@ import org.jsoup.nodes.Element;
  * @author Hugo
  */
 public class PortugueseProcessor extends ConceptProcessor {
-
+    
+    private static Logger logger;
+    
     public PortugueseProcessor() {
         super();
         code = "pt";
+        
+        logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
     }
 
     /**
@@ -76,7 +80,7 @@ public class PortugueseProcessor extends ConceptProcessor {
             try {
                 singularQueryToken = Inflector.singularize(queryToken, "pt");
             } catch (Exception ex) {
-                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, null, ex);
             }
             
             punctuationMatcher.reset(token);
@@ -188,7 +192,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                 rs.close();
 
             } catch (SQLException ex) {
-                Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, null, ex);
             }
         }
 
@@ -260,7 +264,7 @@ public class PortugueseProcessor extends ConceptProcessor {
             }
                     
         } catch (IOException ex) {
-            Logger.getLogger(EnglishProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
         
         return result;
@@ -279,7 +283,7 @@ public class PortugueseProcessor extends ConceptProcessor {
             
             rs.beforeFirst();
         } catch (SQLException ex) {
-            Logger.getLogger(PortugueseProcessor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
 
         return result;

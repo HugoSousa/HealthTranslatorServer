@@ -17,10 +17,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,6 +72,8 @@ public class Processor {
     private int THRESHOLD_TEXT_SIZE = 100;
     
     private int MAX_RETRIES = 3;
+    
+    private static Logger logger; 
 
     private final EnglishProcessor englishProcessor = new EnglishProcessor();
     private final PortugueseProcessor portugueseProcessor = new PortugueseProcessor();
@@ -82,45 +82,26 @@ public class Processor {
      * Creates a new instance of Processor
      */
     public Processor() {
+        
         System.out.println("Processor constructor");
-        /*
-         Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
-         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
-         punctuationMatcher = punctuationPattern.matcher("");
-         numberMatcher = numberPattern.matcher("");
-         */
 
-        englishProcessor.setSemanticTypes(semanticTypes);
-        portugueseProcessor.setSemanticTypes(semanticTypes);
-        //conn = connectToDatabaseOrDie();
+         
     }
-    /*
-     private Connection connectToDatabaseOrDie() {
-     Connection conn = null;
-     try {
-     Class.forName("org.postgresql.Driver");
-     String url = "jdbc:postgresql://localhost/HealthTranslator";
-     conn = DriverManager.getConnection(url, "hugo", "healthtranslator");
-     } catch (ClassNotFoundException e) {
-     e.printStackTrace();
-     System.exit(1);
-     } catch (SQLException e) {
-     e.printStackTrace();
-     System.exit(2);
-     }
-     System.out.println("RETURNING CONN");
-     System.out.println("conn: " + conn);
-     return conn;
-     }
-     */
+    
 
     /*
-     * load stopwords and models into memory
+     * load stopwords, models, semantic types and logger into memory
      */
     @PostConstruct
     public void preLoad() {
 
         System.out.println("Processor preload");
+        
+        englishProcessor.setSemanticTypes(semanticTypes);
+        portugueseProcessor.setSemanticTypes(semanticTypes);
+        
+        logger = LoggerFactory.createLogger(Processor.class.getName());
+        
         InputStream is = null;
         try {
             is = servletContext.getResourceAsStream("/WEB-INF/models/en-token.bin");
@@ -135,7 +116,7 @@ public class Processor {
             portugueseProcessor.setTokenizer(tokenizerPT);
             is.close();
         } catch (IOException ex) {
-            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
 
         is = servletContext.getResourceAsStream("/WEB-INF/stopwords/stopwords_en.txt");
@@ -193,7 +174,7 @@ public class Processor {
             long duration = (endTime - startTime) / 1000000;
             System.out.println("LOAD PROFILES: " + duration + " ms");
         } catch (LangDetectException ex) {
-            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            logger.log(Level.SEVERE, null, ex);
         }
     }
 
@@ -208,23 +189,25 @@ public class Processor {
     @Consumes("application/json")
     public ProcessResult test(ProcessorParams param) {
         
+        
         System.out.println("Starting Processing");
         SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss.SSS");
         Date date = new Date();
         System.out.println(SDF.format(date));
-        
+
         long startTimeX = System.nanoTime();
         String decompressed = LZString.decompressFromUTF16(param.getBody());
         long endTimeX = System.nanoTime();
         long durationX = (endTimeX - startTimeX) / 1000000;
         System.out.println("DURATION TO DECOMPRESS: " + durationX + " ms");
         //System.out.println("DECOMPRESSED: " + decompressed);
-        
+
         long startTime = System.nanoTime();
         ProcessResult result = processDocumentV2(decompressed);
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("DURATION: " + duration + " ms");
+
         
         return result;
     }
@@ -353,7 +336,7 @@ public class Processor {
                 }
 
             } catch (Exception e) {
-                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, e);
+                logger.log(Level.SEVERE, null, e);
             }
         }
 
@@ -380,7 +363,7 @@ public class Processor {
             try {
                 detector = DetectorFactory.create();
             } catch (LangDetectException ex) {
-                Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+                logger.log(Level.SEVERE, null, ex);
             }
 
             successfulDetection = true;
@@ -413,7 +396,7 @@ public class Processor {
                     THRESHOLD_TEXT_SIZE = 0;
                     THRESHOLD_TEXT_DETECTION = 99999;
                 } else {
-                    Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+                    logger.log(Level.SEVERE, null, ex);
                 }
             }
             
