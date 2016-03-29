@@ -13,15 +13,15 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @author Hugo
  */
 @XmlRootElement
-public class ProcessResult {
+public class ProcessorResult {
     
     @XmlElement private String body;
     @XmlElement private int conceptCounter;
     @XmlElement private long processingTime;
     
-    public ProcessResult(){}
+    public ProcessorResult(){}
     
-    public ProcessResult(String body, int conceptCounter, long processingTime){
+    public ProcessorResult(String body, int conceptCounter, long processingTime){
         this.body = body;
         this.conceptCounter = conceptCounter;
         this.processingTime = processingTime;

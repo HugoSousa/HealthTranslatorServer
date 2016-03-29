@@ -160,7 +160,7 @@ public class EnglishProcessor extends ConceptProcessor {
                         tuis.add(rs.getString("tui"));
                     }
                     
-                    if (acceptedSemanticType(tuis)) {
+                    if (isAcceptedSemanticType(tuis)) {
                         
                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
@@ -501,13 +501,45 @@ public class EnglishProcessor extends ConceptProcessor {
         return result;
     }
     
-    private boolean acceptedSemanticType(ArrayList<String> tuis) {
+    private boolean isAcceptedSemanticType(ArrayList<String> tuis) {
         
         for(String tui: tuis){
-            if(! acceptedSemanticType(tui))
+            if(! isAcceptedSemanticType(tui))
                 return false;
         }
         
         return true;
+    }
+    
+    @Override
+    protected ArrayList<String> getSemanticTypes(String cui){
+        
+        ArrayList<String> stys = new ArrayList<>();
+        
+        Connection connMySQL = ServletContextClass.conn_MySQL;
+        PreparedStatement stmt;
+        
+        String database = "umls_" + code;
+        try {
+            connMySQL.setCatalog(database);
+            
+            String query = "SELECT * FROM mrsty WHERE CUI = ?;";
+            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+            stmt.setString(1, cui);
+
+            ResultSet rs = stmt.executeQuery();
+            
+            while(rs.next()){
+                String sty = rs.getString("STY");
+                if(! stys.contains(sty))
+                    stys.add(sty);
+            }
+            
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
+        return stys;
     }
 }

@@ -18,6 +18,7 @@ public class ConceptDetailsResult {
     
     @XmlElement private String definition;
     @XmlElement private ArrayList<ExternalReference> refs;
+    @XmlElement public ArrayList<String> stys;
     
     public ConceptDetailsResult(){}
     

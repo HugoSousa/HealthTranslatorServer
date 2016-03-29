@@ -19,6 +19,7 @@ import org.jactiveresource.Inflector;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 /**
  *
@@ -175,7 +176,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                     //TODO TUI may be null if only CHV results are returned!
                     if( tuis.size() > 0 &&
                         (TUIPreferred == -1 && acceptedSemanticType(tuis)) || 
-                        (TUIPreferred != -1 && acceptedSemanticType(tuis.get(TUIPreferred)))){
+                        (TUIPreferred != -1 && isAcceptedSemanticType(tuis.get(TUIPreferred)))){
                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
                         bestMatch.setCHVPreferred(CHVPreferred);
@@ -238,9 +239,11 @@ public class PortugueseProcessor extends ConceptProcessor {
     protected ArrayList<ExternalReference> getExternalReferences(Concept concept) {
         
         ArrayList<ExternalReference> infopediaReferences = getInfopediaReferences(concept.string);
+        ArrayList<ExternalReference> medicoRespondeReferences = getMedicoRespondeReferences(concept.string);
         
         ArrayList<ExternalReference> resultList = new ArrayList<>();
         resultList.addAll(infopediaReferences);
+        resultList.addAll(medicoRespondeReferences);
         
         return resultList;
     }
@@ -260,6 +263,32 @@ public class PortugueseProcessor extends ConceptProcessor {
                 String label = elem.select("span.dolEntrinfoEntrada").first().text();
                 
                 ExternalReference ref = new ExternalReference(url, label, "Infopedia");
+                result.add(ref);
+            }
+                    
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
+        return result;
+    }
+    
+    private ArrayList<ExternalReference> getMedicoRespondeReferences(String concept){
+                
+        ArrayList<ExternalReference> result = new ArrayList<> ();
+        
+        try {
+            concept = URLEncoder.encode(concept, "utf-8");
+            String url = "http://medicoresponde.com.br/busca/?s=" + concept;
+            Document doc = Jsoup.connect(url).get();
+            
+            //if doesn't have div.box, there's no results
+            Elements elems = doc.select("#container div.box");
+            
+            if(elems != null){
+                //String label = elem.select("span.dolEntrinfoEntrada").first().text();
+                
+                ExternalReference ref = new ExternalReference(url, concept, "Medico Responde");
                 result.add(ref);
             }
                     
@@ -294,11 +323,52 @@ public class PortugueseProcessor extends ConceptProcessor {
         for(String tuiList: tuis){
             String[] tuiSplit = tuiList.split(";");
             for(String tui: tuiSplit){
-                if(! acceptedSemanticType(tui))
+                if(! isAcceptedSemanticType(tui))
                     return false;
             }
         }
         
         return true;
+    }
+    
+    @Override
+    protected ArrayList<String> getSemanticTypes(String cui){
+        
+        ArrayList<String> stys = new ArrayList<>();
+        
+        Connection connMySQL = ServletContextClass.conn_MySQL;
+        PreparedStatement stmt;
+        
+        String database = "umls_" + code;
+        try {
+            connMySQL.setCatalog(database);
+            
+            String query = "SELECT * FROM mrsty WHERE CUI = ?;";
+            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+            stmt.setString(1, cui);
+
+            ResultSet rs = stmt.executeQuery();
+            
+            while(rs.next()){
+                String sty = rs.getString("STY");
+                
+                if(sty.contains(";")){
+                    String[] stySplit = sty.split(";");
+                    for(String _sty : stySplit){
+                        if(! stys.contains(_sty))
+                            stys.add(_sty);
+                    }
+                }else{
+                    if(! stys.contains(sty))
+                        stys.add(sty);
+                }
+            }
+            
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
+        return stys;
     }
 }

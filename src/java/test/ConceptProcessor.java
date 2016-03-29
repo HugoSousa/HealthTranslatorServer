@@ -5,6 +5,10 @@
  */
 package test;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +27,7 @@ public abstract class ConceptProcessor {
     
     protected ConcurrentHashMap<String, String> stopwords;
     protected Tokenizer tokenizer; 
-    protected HashSet<String> semanticTypes;
+    protected HashSet<String> acceptedSemanticTypes;
     protected Matcher punctuationMatcher;
     protected Matcher numberMatcher;
     protected String code;
@@ -40,8 +44,8 @@ public abstract class ConceptProcessor {
     }
 
     
-    protected void setSemanticTypes(HashSet<String> semanticTypes){
-        this.semanticTypes = semanticTypes;
+    protected void setAcceptedSemanticTypes(HashSet<String> semanticTypes){
+        this.acceptedSemanticTypes = semanticTypes;
     }
     
     protected void setTokenizer(Tokenizer tokenizer){
@@ -52,8 +56,8 @@ public abstract class ConceptProcessor {
         this.stopwords = stopwords;
     }
     
-    protected boolean acceptedSemanticType(String sty) {
-        return semanticTypes.contains(sty);
+    protected boolean isAcceptedSemanticType(String sty) {
+        return acceptedSemanticTypes.contains(sty);
     }
     
     protected Concept processToken(Span[] spans, int i, String text, int forward_threshold){
@@ -185,6 +189,10 @@ public abstract class ConceptProcessor {
     };
     
     protected ArrayList<ExternalReference> getExternalReferences(Concept concept){
+        return null;
+    }
+    
+    protected ArrayList<String> getSemanticTypes(String cui){
         return null;
     }
 }

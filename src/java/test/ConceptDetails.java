@@ -54,6 +54,8 @@ public class ConceptDetails {
         ArrayList<ExternalReference> externalReferences = processor.getExternalReferences(concept);
         //processor.getRelationships();
         
+        ArrayList<String> stys = processor.getSemanticTypes(concept.CUI);
+        
         //send semantic type
         //send the definition (probably bigger...?)
         //send external references
@@ -61,6 +63,7 @@ public class ConceptDetails {
         
         
         ConceptDetailsResult result = new ConceptDetailsResult(externalReferences);
+        result.stys = stys;
         return result;
     }
 }

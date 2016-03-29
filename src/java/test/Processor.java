@@ -71,7 +71,7 @@ public class Processor {
     //size of the text that is considered as a chunk to be used in language detection
     private int THRESHOLD_TEXT_SIZE = 100;
     
-    private int MAX_RETRIES = 3;
+    private final int MAX_RETRIES = 3;
     
     private static Logger logger; 
 
@@ -97,8 +97,8 @@ public class Processor {
 
         System.out.println("Processor preload");
         
-        englishProcessor.setSemanticTypes(semanticTypes);
-        portugueseProcessor.setSemanticTypes(semanticTypes);
+        englishProcessor.setAcceptedSemanticTypes(semanticTypes);
+        portugueseProcessor.setAcceptedSemanticTypes(semanticTypes);
         
         logger = LoggerFactory.createLogger(Processor.class.getName());
         
@@ -187,7 +187,7 @@ public class Processor {
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public ProcessResult test(ProcessorParams param) {
+    public ProcessorResult test(ProcessorParams param) {
         
         
         System.out.println("Starting Processing");
@@ -203,7 +203,7 @@ public class Processor {
         //System.out.println("DECOMPRESSED: " + decompressed);
 
         long startTime = System.nanoTime();
-        ProcessResult result = processDocumentV2(decompressed);
+        ProcessorResult result = processDocumentV2(decompressed);
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("DURATION: " + duration + " ms");
@@ -212,7 +212,7 @@ public class Processor {
         return result;
     }
 
-    public ProcessResult processDocumentV2(String content) {
+    public ProcessorResult processDocumentV2(String content) {
 
         //System.out.println("CONTENT: " + content);
         long startTime = System.nanoTime();
@@ -343,7 +343,7 @@ public class Processor {
         long endTime = System.nanoTime();
         long duration = (endTime - startTime)/1000000;// / 1000000;
         //System.out.println("BODY: " + doc.body().toString());
-        ProcessResult result = new ProcessResult(doc.body().toString(), conceptCounter, duration);
+        ProcessorResult result = new ProcessorResult(doc.body().toString(), conceptCounter, duration);
         return result;
     }
 
@@ -406,7 +406,7 @@ public class Processor {
         
         return "en";
     }
-
+    
     protected boolean acceptedSemanticType(String sty) {
         return semanticTypes.contains(sty);
     }
