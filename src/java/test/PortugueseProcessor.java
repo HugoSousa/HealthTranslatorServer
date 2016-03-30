@@ -173,10 +173,17 @@ public class PortugueseProcessor extends ConceptProcessor {
                         }
                     }
                     
-                    //TODO TUI may be null if only CHV results are returned!
+                    
+                    for(String tui: tuis){
+                        String[] tuiList = tui.split(";");
+                        for(String tuiSplit: tuiList){
+                            if(! tuis.contains(tuiSplit))
+                                tuis.add(tuiSplit);
+                        }
+                    }
+                    
                     if( tuis.size() > 0 &&
-                        (TUIPreferred == -1 && acceptedSemanticType(tuis)) || 
-                        (TUIPreferred != -1 && isAcceptedSemanticType(tuis.get(TUIPreferred)))){
+                        (TUIPreferred == -1 && isAcceptedSemanticType(tuis))){
                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
                         bestMatch.setCHVPreferred(CHVPreferred);
@@ -316,19 +323,6 @@ public class PortugueseProcessor extends ConceptProcessor {
         }
 
         return result;
-    }
-    
-    private boolean acceptedSemanticType(ArrayList<String> tuis) {
-        
-        for(String tuiList: tuis){
-            String[] tuiSplit = tuiList.split(";");
-            for(String tui: tuiSplit){
-                if(! isAcceptedSemanticType(tui))
-                    return false;
-            }
-        }
-        
-        return true;
     }
     
     @Override

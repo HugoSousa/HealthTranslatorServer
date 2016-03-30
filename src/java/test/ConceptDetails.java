@@ -59,8 +59,11 @@ public class ConceptDetails {
         ArrayList<String> stys = processor.getSemanticTypes(concept.CUI);
         
         HashMap<String, HashSet<Relationship>> rels = null;
-        if(stys.contains("disease or syndrome"))
-            rels = processor.getRelationships("disease or syndrome", concept.CUI);        
+        
+        if(stys.contains("Disease or Syndrome"))
+            rels = processor.getRelationships("disease or syndrome", concept.CUI);
+        else if(stys.contains("Pharmacologic Substance"))
+            rels = processor.getRelationships("pharmacologic substance", concept.CUI);
         
         ConceptDetailsResult result = new ConceptDetailsResult(externalReferences, stys, rels);
         

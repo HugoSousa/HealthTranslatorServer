@@ -373,7 +373,7 @@ public class Inflector {
             singularsEN.add( 0, new ReplacementRule( "(matr)ices$", "$1ix" ) );
             singularsEN.add( 0, new ReplacementRule( "(quiz)zes$", "$1" ) );
             
-            uncountablesEN = new ArrayList<>( 10 );
+            uncountablesEN = new ArrayList<>( 11 );
             uncountablesEN.add( "equipment" );
             uncountablesEN.add( "information" );
             uncountablesEN.add( "rice" );
@@ -384,6 +384,7 @@ public class Inflector {
             uncountablesEN.add( "sheep" );
             uncountablesEN.add( "diabetes" );
             uncountablesEN.add( "status" );
+            uncountablesEN.add( "abdomen" );
             
             
             pluralsPT = new ArrayList<>( 20 );

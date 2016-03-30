@@ -65,8 +65,12 @@ public abstract class ConceptProcessor {
         this.stopwords = stopwords;
     }
     
-    protected boolean isAcceptedSemanticType(String sty) {
-        return acceptedSemanticTypes.contains(sty);
+    protected boolean isAcceptedSemanticType(ArrayList<String> tuis) {
+        for(String tui: tuis){
+            if(acceptedSemanticTypes.contains(tui))
+                return true;
+        }
+        return false;
     }
     
     protected Concept processToken(Span[] spans, int i, String text, int forward_threshold){
@@ -207,19 +211,25 @@ public abstract class ConceptProcessor {
     
     protected HashMap<String, HashSet<Relationship>> getRelationships(String sty, String cui){
         
+        HashMap<String, List<String>> rules = new HashMap<>();
+        HashMap<String, HashSet<Relationship>> rels = new HashMap<>();
         switch(sty.toLowerCase()){
             case "disease or syndrome":
-                HashMap<String, List<String>> rules = new HashMap<>();
                 rules.put("same_as", null);
                 rules.put("due_to", asList("T046", "T047"));
                 rules.put("cause_of", asList("T046", "T047"));
                 rules.put("inverse_isa", asList("T046", "T047"));
                 rules.put("isa", asList("T046", "T047"));
                 rules.put("finding_site_of", asList("T022", "T023"));
-                HashMap<String, HashSet<Relationship>> rels = RelationshipExtractor.extract(rules, cui, code);
+                rels = RelationshipExtractor.extract(rules, cui, code);
                 return rels;
-            case "pharmacological substance":
-                //return getRelationshipsPharmacologicalSubstance(cui);
+            case "pharmacologic substance":
+                rules.put("same_as", null);
+                rules.put("inverse_isa", asList("T121"));
+                rules.put("isa", asList("T121"));
+                rules.put("has_causative_agent", asList("T047"));
+                rels = RelationshipExtractor.extract(rules, cui, code);
+                return rels;
             default:
                 return null;
         }

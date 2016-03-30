@@ -107,7 +107,7 @@ public class EnglishProcessor extends ConceptProcessor {
             } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
                 break;
             }
-
+            
             Connection connMySQL = ServletContextClass.conn_MySQL;
             PreparedStatement stmt;
 
@@ -499,16 +499,6 @@ public class EnglishProcessor extends ConceptProcessor {
         }
         
         return result;
-    }
-    
-    private boolean isAcceptedSemanticType(ArrayList<String> tuis) {
-        
-        for(String tui: tuis){
-            if(! isAcceptedSemanticType(tui))
-                return false;
-        }
-        
-        return true;
     }
     
     @Override

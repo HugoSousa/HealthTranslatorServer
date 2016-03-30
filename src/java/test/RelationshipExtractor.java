@@ -64,6 +64,7 @@ public class RelationshipExtractor {
                 String str1 = rs.getString("str1");
                 String str2 = rs.getString("str2");
                 String rela = rs.getString("rela");
+                String cui2 = rs.getString("cui2");
                 
                 String tui = rs.getString("tui");
                 
@@ -72,7 +73,7 @@ public class RelationshipExtractor {
                         if( ! str1.equals(str2)){
                             List<String> acceptedTuiList = relationshipRules.get(relation);
                             if(acceptedTuiList == null || (acceptedTuiList != null && acceptedTuiList.contains(tui))){
-                                Relationship rel = new Relationship(str1, rela, str2);
+                                Relationship rel = new Relationship(str1, rela, str2, cui2);
                                 addRelationshipToResult(result, rela, rel); 
                             }
                         }
