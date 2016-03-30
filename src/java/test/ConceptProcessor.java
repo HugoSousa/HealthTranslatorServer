@@ -10,8 +10,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import static java.util.Arrays.asList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import opennlp.tools.tokenize.Tokenizer;
@@ -33,6 +38,8 @@ public abstract class ConceptProcessor {
     protected String code;
     protected CloseableHttpClient httpclient = HttpClients.createDefault();
     
+    private static Logger logger;
+    
     /**
      *
      */
@@ -41,6 +48,8 @@ public abstract class ConceptProcessor {
         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
         punctuationMatcher = punctuationPattern.matcher("");
         numberMatcher = numberPattern.matcher("");
+        
+        logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
     }
 
     
@@ -194,5 +203,25 @@ public abstract class ConceptProcessor {
     
     protected ArrayList<String> getSemanticTypes(String cui){
         return null;
+    }
+    
+    protected HashMap<String, HashSet<Relationship>> getRelationships(String sty, String cui){
+        
+        switch(sty.toLowerCase()){
+            case "disease or syndrome":
+                HashMap<String, List<String>> rules = new HashMap<>();
+                rules.put("same_as", null);
+                rules.put("due_to", asList("T046", "T047"));
+                rules.put("cause_of", asList("T046", "T047"));
+                rules.put("inverse_isa", asList("T046", "T047"));
+                rules.put("isa", asList("T046", "T047"));
+                rules.put("finding_site_of", asList("T022", "T023"));
+                HashMap<String, HashSet<Relationship>> rels = RelationshipExtractor.extract(rules, cui, code);
+                return rels;
+            case "pharmacological substance":
+                //return getRelationshipsPharmacologicalSubstance(cui);
+            default:
+                return null;
+        }
     }
 }

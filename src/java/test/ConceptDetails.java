@@ -6,6 +6,8 @@
 package test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import javax.ejb.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -34,7 +36,7 @@ public class ConceptDetails {
         String string = param.string;
         String language = param.language;
         
-        ConceptProcessor processor = null;
+        ConceptProcessor processor;
         switch (language) {
             case "en":
                 processor = englishProcessor;
@@ -56,14 +58,12 @@ public class ConceptDetails {
         
         ArrayList<String> stys = processor.getSemanticTypes(concept.CUI);
         
-        //send semantic type
-        //send the definition (probably bigger...?)
-        //send external references
-        //send relationships
+        HashMap<String, HashSet<Relationship>> rels = null;
+        if(stys.contains("disease or syndrome"))
+            rels = processor.getRelationships("disease or syndrome", concept.CUI);        
         
+        ConceptDetailsResult result = new ConceptDetailsResult(externalReferences, stys, rels);
         
-        ConceptDetailsResult result = new ConceptDetailsResult(externalReferences);
-        result.stys = stys;
         return result;
     }
 }
