@@ -179,8 +179,9 @@ public class PortugueseProcessor extends ConceptProcessor {
                         }
                     }
                     
+                    ArrayList<String> tuisCopy = new ArrayList<>(tuis);
                     
-                    for(String tui: tuis){
+                    for(String tui: tuisCopy){
                         String[] tuiList = tui.split(";");
                         for(String tuiSplit: tuiList){
                             if(! tuis.contains(tuiSplit))
