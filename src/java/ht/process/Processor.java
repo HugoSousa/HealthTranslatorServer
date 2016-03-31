@@ -18,12 +18,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -82,6 +86,9 @@ public class Processor {
 
     private final EnglishProcessor englishProcessor = new EnglishProcessor();
     private final PortugueseProcessor portugueseProcessor = new PortugueseProcessor();
+    
+    private ResourceBundle englishMessages;
+    private ResourceBundle portugueseMessages;
 
     /**
      * Creates a new instance of Processor
@@ -143,7 +150,6 @@ public class Processor {
             }
 
             englishProcessor.setStopwords(stopwordsEN);
-            //set stopwords pt
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -180,6 +186,21 @@ public class Processor {
             System.out.println("LOAD PROFILES: " + duration + " ms");
         } catch (LangDetectException ex) {
             logger.log(Level.SEVERE, null, ex);
+        }
+        
+        try{
+            
+            Locale localeEN = new Locale("en");
+            Locale localePT = new Locale("pt");
+            URL[] urls = {servletContext.getResource("/WEB-INF/i18n/")};
+            ClassLoader loader = new URLClassLoader(urls);
+            
+            englishMessages = ResourceBundle.getBundle("MessagesBundle", localeEN, loader);
+            portugueseMessages = ResourceBundle.getBundle("MessagesBundle", localePT, loader);
+            
+            System.out.println(new String(portugueseMessages.getString("greetings").getBytes("ISO-8859-1"), "UTF-8"));
+        }catch(Exception e){
+            logger.log(Level.SEVERE, null, e);
         }
     }
 
@@ -229,16 +250,20 @@ public class Processor {
         Elements elements = doc.body().children().select("*");
 
         String language = detectLanguage(elements);
-        ConceptProcessor processor = null;
+        ConceptProcessor processor;
+        ResourceBundle messages;
         switch (language) {
             case "en":
                 processor = englishProcessor;
+                messages = englishMessages;
                 break;
             case "pt":
                 processor = portugueseProcessor;
+                messages = portugueseMessages;
                 break;
             default:
                 processor = englishProcessor;
+                messages = englishMessages;
                 break;
         }
 
@@ -256,6 +281,7 @@ public class Processor {
                 //String text = element.ownText();
                 List<Node> nodes = element.childNodes();
                 //System.out.println("TEXT: " + text);
+
 
                 for (Node node : nodes) {
                     //System.out.println("NODE: " + node);
@@ -298,7 +324,7 @@ public class Processor {
                                     }
                                 }
 
-                                String replace = replaceConcept(bestMatch, language);
+                                String replace = replaceConcept(bestMatch, language, messages);
                                 splitText.add(replace);
 
                                 lastFound = bestMatch;
@@ -352,8 +378,21 @@ public class Processor {
         return result;
     }
 
-    private String replaceConcept(Concept bestMatch, String language) {
-        String tooltip = "<p> CHV PREFERRED: " + bestMatch.CHVPreferred + "</p> <p> DEFINITION (Wikipedia): <br> " + bestMatch.definition + " </p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">click here for more information</a>";
+    private String replaceConcept(Concept bestMatch, String language, ResourceBundle messages) {
+                
+        String CHVPreferred = "";
+        String definition = "";
+        
+        if(bestMatch.CHVPreferred != null){
+            CHVPreferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" </p>";
+        }
+            
+        if(bestMatch.definition != null){
+            definition = "<p>" + messages.getString("definition") + "<br>" + bestMatch.definition + "</p>";
+        }else{
+            definition = "<p>" + messages.getString("sorry") + "<br>" +  messages.getString("no_definition") + "</p>"; 
+        }
+        String tooltip = CHVPreferred + definition + "<a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">More Information</a>";
         String newString = "<x-health-translator style='display:inline' class='health-translator'><x-health-translator class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</x-health-translator></x-health-translator>";
 
         return newString;
@@ -415,4 +454,4 @@ public class Processor {
     protected boolean acceptedSemanticType(String sty) {
         return semanticTypes.contains(sty);
     }
-}
+ }

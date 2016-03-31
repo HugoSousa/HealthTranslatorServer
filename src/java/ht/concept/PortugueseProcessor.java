@@ -269,7 +269,7 @@ public class PortugueseProcessor extends ConceptProcessor {
         try {
             concept = URLEncoder.encode(concept, "utf-8");
             String url = "http://www.infopedia.pt/dicionarios/termos-medicos/" + concept;
-            Document doc = Jsoup.connect(url).get();
+            Document doc = Jsoup.connect(url).timeout(4000).get();
                     
             Element elem = doc.select("#infoCliqueContainer").first();
             
@@ -288,7 +288,8 @@ public class PortugueseProcessor extends ConceptProcessor {
     }
     
     private ArrayList<ExternalReference> getMedicoRespondeReferences(String concept){
-                
+        
+        String originalConcept = concept;
         ArrayList<ExternalReference> result = new ArrayList<> ();
         
         try {
@@ -302,7 +303,7 @@ public class PortugueseProcessor extends ConceptProcessor {
             if(elems != null){
                 //String label = elem.select("span.dolEntrinfoEntrada").first().text();
                 
-                ExternalReference ref = new ExternalReference(url, concept, "Medico Responde");
+                ExternalReference ref = new ExternalReference(url, originalConcept, "Medico Responde");
                 result.add(ref);
             }
                     
