@@ -39,7 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import test.LoggerFactory;
+import ht.utils.LoggerFactory;
 
 /**
  * a port of the excellent Inflector class in ruby's ActiveSupport library

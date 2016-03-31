@@ -3,8 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package test;
+package ht.concept;
 
+import ht.utils.LoggerFactory;
+import ht.details.ExternalReference;
+import ht.utils.ServletContextClass;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.sql.Connection;
@@ -45,7 +48,7 @@ public class PortugueseProcessor extends ConceptProcessor {
      * @return
      */
     @Override
-    protected Concept processToken(Span[] spans, int i, String text, int forward_threshold) {
+    public Concept processToken(Span[] spans, int i, String text, int forward_threshold) {
 
         String[] tokens = new String[forward_threshold];
         Span initialSpan = spans[i];
@@ -129,6 +132,9 @@ public class PortugueseProcessor extends ConceptProcessor {
                     int TUIPreferred = -1;
                     
                     if(allResultsFromCHV(rs)){
+                        
+                        if(filterCHVOnly)
+                            return null;
                         //if there's only many CHV results, it's probably a bad translation (example: "elevado") 
                         if(total < 4){
                             
@@ -208,7 +214,7 @@ public class PortugueseProcessor extends ConceptProcessor {
     };
     
     @Override
-    protected String getDefinition(Concept concept) {
+    public String getDefinition(Concept concept) {
         /*
         long startTime = System.nanoTime();
         
@@ -243,7 +249,7 @@ public class PortugueseProcessor extends ConceptProcessor {
     }
     
     @Override
-    protected ArrayList<ExternalReference> getExternalReferences(Concept concept) {
+    public ArrayList<ExternalReference> getExternalReferences(Concept concept) {
         
         ArrayList<ExternalReference> infopediaReferences = getInfopediaReferences(concept.string);
         ArrayList<ExternalReference> medicoRespondeReferences = getMedicoRespondeReferences(concept.string);
@@ -305,28 +311,10 @@ public class PortugueseProcessor extends ConceptProcessor {
         
         return result;
     }
-    
-    private boolean allResultsFromCHV(ResultSet rs){
-        
-        boolean result = true;
-        try {
-            while(rs.next()){
-                if( ! rs.getString("SAB").equals("CHV")){
-                    result = false;
-                    break;
-                }
-            }
-            
-            rs.beforeFirst();
-        } catch (SQLException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
 
-        return result;
-    }
     
     @Override
-    protected ArrayList<String> getSemanticTypes(String cui){
+    public ArrayList<String> getSemanticTypes(String cui){
         
         ArrayList<String> stys = new ArrayList<>();
         

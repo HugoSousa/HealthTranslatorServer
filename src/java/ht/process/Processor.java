@@ -3,8 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package test;
+package ht.process;
 
+import ht.concept.Concept;
+import ht.concept.PortugueseProcessor;
+import ht.concept.EnglishProcessor;
+import ht.concept.ConceptProcessor;
+import ht.utils.LoggerFactory;
 import com.cybozu.labs.langdetect.Detector;
 import com.cybozu.labs.langdetect.DetectorFactory;
 import com.cybozu.labs.langdetect.LangDetectException;

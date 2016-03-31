@@ -3,8 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package test;
+package ht.details;
 
+import ht.concept.ConceptProcessor;
+import ht.concept.Concept;
+import ht.concept.EnglishProcessor;
+import ht.concept.PortugueseProcessor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;

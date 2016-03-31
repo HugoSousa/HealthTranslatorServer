@@ -3,10 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package test;
+package ht.concept;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import ht.details.ExternalReference;
+import ht.details.Relationship;
+import ht.utils.LoggerFactory;
+import ht.concept.PortugueseProcessor;
+import ht.details.RelationshipExtractor;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -31,12 +34,13 @@ import org.apache.http.impl.client.HttpClients;
 public abstract class ConceptProcessor {
     
     protected ConcurrentHashMap<String, String> stopwords;
-    protected Tokenizer tokenizer; 
+    public Tokenizer tokenizer; 
     protected HashSet<String> acceptedSemanticTypes;
     protected Matcher punctuationMatcher;
     protected Matcher numberMatcher;
     protected String code;
     protected CloseableHttpClient httpclient = HttpClients.createDefault();
+    protected boolean filterCHVOnly = false;
     
     private static Logger logger;
     
@@ -53,15 +57,15 @@ public abstract class ConceptProcessor {
     }
 
     
-    protected void setAcceptedSemanticTypes(HashSet<String> semanticTypes){
+    public void setAcceptedSemanticTypes(HashSet<String> semanticTypes){
         this.acceptedSemanticTypes = semanticTypes;
     }
     
-    protected void setTokenizer(Tokenizer tokenizer){
+    public void setTokenizer(Tokenizer tokenizer){
         this.tokenizer = tokenizer;
     };
     
-    protected void setStopwords(ConcurrentHashMap<String, String> stopwords){
+    public void setStopwords(ConcurrentHashMap<String, String> stopwords){
         this.stopwords = stopwords;
     }
     
@@ -73,11 +77,11 @@ public abstract class ConceptProcessor {
         return false;
     }
     
-    protected Concept processToken(Span[] spans, int i, String text, int forward_threshold){
+    public Concept processToken(Span[] spans, int i, String text, int forward_threshold){
         return null;
     };
     
-    protected String getDefinition(Concept concept){
+    public String getDefinition(Concept concept){
 
         //String definition = null;
         
@@ -201,15 +205,34 @@ public abstract class ConceptProcessor {
         
     };
     
-    protected ArrayList<ExternalReference> getExternalReferences(Concept concept){
+    protected boolean allResultsFromCHV(ResultSet rs){
+        
+        boolean result = true;
+        try {
+            while(rs.next()){
+                if( ! rs.getString("SAB").equals("CHV")){
+                    result = false;
+                    break;
+                }
+            }
+            
+            rs.beforeFirst();
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+
+        return result;
+    }
+    
+    public ArrayList<ExternalReference> getExternalReferences(Concept concept){
         return null;
     }
     
-    protected ArrayList<String> getSemanticTypes(String cui){
+    public ArrayList<String> getSemanticTypes(String cui){
         return null;
     }
     
-    protected HashMap<String, HashSet<Relationship>> getRelationships(String sty, String cui){
+    public HashMap<String, HashSet<Relationship>> getRelationships(String sty, String cui){
         
         HashMap<String, List<String>> rules = new HashMap<>();
         HashMap<String, HashSet<Relationship>> rels = new HashMap<>();

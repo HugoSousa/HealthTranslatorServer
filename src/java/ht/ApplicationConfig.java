@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package test;
+package ht;
 
 import java.util.Set;
 import javax.ws.rs.core.Application;
@@ -29,8 +29,8 @@ public class ApplicationConfig extends Application {
      * If required, comment out calling this method in getClasses().
      */
     private void addRestResourceClasses(Set<Class<?>> resources) {
-        resources.add(test.ConceptDetails.class);
-        resources.add(test.Processor.class);
+        resources.add(ht.details.ConceptDetails.class);
+        resources.add(ht.process.Processor.class);
     }
     
 }

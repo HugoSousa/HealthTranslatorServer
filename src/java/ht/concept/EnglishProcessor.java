@@ -3,8 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package test;
+package ht.concept;
 
+import ht.utils.LoggerFactory;
+import ht.details.ExternalReference;
+import ht.utils.ServletContextClass;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URLEncoder;
@@ -56,7 +59,7 @@ public class EnglishProcessor extends ConceptProcessor {
      * @return
      */
     @Override
-    protected Concept processToken(Span[] spans, int i, String text, int forward_threshold) {
+    public Concept processToken(Span[] spans, int i, String text, int forward_threshold) {
 
         String[] tokens = new String[forward_threshold];
         Span initialSpan = spans[i];
@@ -136,6 +139,11 @@ public class EnglishProcessor extends ConceptProcessor {
 
                     String CUI = null;
                     String CHVPreferred = null;
+                    
+                    if(allResultsFromCHV(rs) && filterCHVOnly){
+                        return null;
+                    }
+                    
                     while (rs.next()) {
                         if (rs.getRow() == 1) {
                             //assign the first result at least, so it's not null
@@ -195,7 +203,7 @@ public class EnglishProcessor extends ConceptProcessor {
     }
     
     @Override
-    protected String getDefinition(Concept concept) {
+    public String getDefinition(Concept concept) {
         
         long startTime = System.nanoTime();
         
@@ -243,7 +251,7 @@ public class EnglishProcessor extends ConceptProcessor {
     }
     
     @Override
-    protected ArrayList<ExternalReference> getExternalReferences(Concept concept) {
+    public ArrayList<ExternalReference> getExternalReferences(Concept concept) {
         
         String SNOMEDCode = getSNOMEDCode(concept);
         ArrayList<ExternalReference> medlinePlusReferences = getMedlinePlusReferences(SNOMEDCode);
@@ -502,7 +510,7 @@ public class EnglishProcessor extends ConceptProcessor {
     }
     
     @Override
-    protected ArrayList<String> getSemanticTypes(String cui){
+    public ArrayList<String> getSemanticTypes(String cui){
         
         ArrayList<String> stys = new ArrayList<>();
         
