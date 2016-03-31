@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import opennlp.tools.util.Span;
-import org.jactiveresource.Inflector;
+import ht.utils.Inflector;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -89,7 +89,7 @@ public class PortugueseProcessor extends ConceptProcessor {
             
             punctuationMatcher.reset(token);
             numberMatcher.reset(token);
-            if (j == 0 && (queryToken.length() <= 2 || stopwords.containsKey(queryToken))) {
+            if (j == 0 && (queryToken.length() <= 3 || stopwords.containsKey(queryToken))) {
                 break;
             } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
                 break;

@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-package org.jactiveresource;
+package ht.utils;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

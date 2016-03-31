@@ -392,7 +392,7 @@ public class Processor {
         }else{
             definition = "<p>" + messages.getString("sorry") + "<br>" +  messages.getString("no_definition") + "</p>"; 
         }
-        String tooltip = CHVPreferred + definition + "<a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">More Information</a>";
+        String tooltip = CHVPreferred + definition + "<a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">" + messages.getString("more_info") + "</a>";
         String newString = "<x-health-translator style='display:inline' class='health-translator'><x-health-translator class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</x-health-translator></x-health-translator>";
 
         return newString;

@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
  */
 
-package org.jactiveresource;
+package ht.utils;
 
 
 import java.util.ArrayList;
@@ -123,7 +123,7 @@ public class Inflector {
      * @param word
      * @param language
      * @return
-     * @throws org.jactiveresource.InvalidLanguageException
+     * @throws ht.utils.InvalidLanguageException
      */
     public static String pluralize( String word, String language ) throws InvalidLanguageException {
 
@@ -166,7 +166,7 @@ public class Inflector {
      * @param word
      * @param language
      * @return
-     * @throws org.jactiveresource.InvalidLanguageException
+     * @throws ht.utils.InvalidLanguageException
      */
     public static String singularize( String word, String language ) throws InvalidLanguageException {
 

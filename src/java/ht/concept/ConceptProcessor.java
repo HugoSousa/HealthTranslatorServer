@@ -8,7 +8,6 @@ package ht.concept;
 import ht.details.ExternalReference;
 import ht.details.Relationship;
 import ht.utils.LoggerFactory;
-import ht.concept.PortugueseProcessor;
 import ht.details.RelationshipExtractor;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,7 +39,12 @@ public abstract class ConceptProcessor {
     protected Matcher numberMatcher;
     protected String code;
     protected CloseableHttpClient httpclient = HttpClients.createDefault();
+    
+    //filterCHVOnly - if set to true, concepts only found in CHV are not recognized
     protected boolean filterCHVOnly = false;
+    
+    //allAccepted: true - all semantic types must be accepted / false - at least one semantic type must be accepted
+    private boolean allAccepted = false; 
     
     private static Logger logger;
     
@@ -71,8 +75,13 @@ public abstract class ConceptProcessor {
     
     protected boolean isAcceptedSemanticType(ArrayList<String> tuis) {
         for(String tui: tuis){
-            if(acceptedSemanticTypes.contains(tui))
-                return true;
+            if(acceptedSemanticTypes.contains(tui)){
+                if(! allAccepted)
+                    return true;
+            }else{
+                if(allAccepted)
+                    return false;
+            }
         }
         return false;
     }

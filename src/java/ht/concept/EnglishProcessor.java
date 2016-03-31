@@ -28,7 +28,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
-import org.jactiveresource.Inflector;
+import ht.utils.Inflector;
 import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -105,7 +105,7 @@ public class EnglishProcessor extends ConceptProcessor {
             
             punctuationMatcher.reset(token);
             numberMatcher.reset(token);
-            if (j == 0 && (queryToken.length() <= 2 || stopwords.containsKey(queryToken))) {
+            if (j == 0 && (queryToken.length() <= 3 || stopwords.containsKey(queryToken))) {
                 break;
             } else if (punctuationMatcher.matches() || numberMatcher.matches()) {
                 break;
