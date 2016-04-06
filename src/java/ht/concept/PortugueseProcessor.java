@@ -7,6 +7,7 @@ package ht.concept;
 
 import ht.utils.LoggerFactory;
 import ht.details.ExternalReference;
+import ht.details.ExternalReferencesExtractor;
 import ht.utils.ServletContextClass;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -19,6 +20,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import opennlp.tools.util.Span;
 import ht.utils.Inflector;
+import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
+import opennlp.tools.tokenize.Tokenizer;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -34,6 +38,13 @@ public class PortugueseProcessor extends ConceptProcessor {
     
     public PortugueseProcessor() {
         super();
+        code = "pt";
+        
+        logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
+    }
+    
+    public PortugueseProcessor(ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
+        super(stopwords, tokenizer, acceptedSemanticTypes);
         code = "pt";
         
         logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
@@ -133,7 +144,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                     
                     if(allResultsFromCHV(rs)){
                         
-                        if(filterCHVOnly)
+                        if(recognizeOnlyCHV)
                             return null;
                         //if there's only many CHV results, it's probably a bad translation (example: "elevado") 
                         if(total < 4){
@@ -251,69 +262,8 @@ public class PortugueseProcessor extends ConceptProcessor {
     
     @Override
     public ArrayList<ExternalReference> getExternalReferences(Concept concept) {
-        
-        ArrayList<ExternalReference> infopediaReferences = getInfopediaReferences(concept.string);
-        ArrayList<ExternalReference> medicoRespondeReferences = getMedicoRespondeReferences(concept.string);
-        
-        ArrayList<ExternalReference> resultList = new ArrayList<>();
-        resultList.addAll(infopediaReferences);
-        resultList.addAll(medicoRespondeReferences);
-        
-        return resultList;
+        return ExternalReferencesExtractor.getPortugueseExternalReferences(concept);   
     }
-    
-    private ArrayList<ExternalReference> getInfopediaReferences(String concept){
-        
-        ArrayList<ExternalReference> result = new ArrayList<> ();
-        
-        try {
-            concept = URLEncoder.encode(concept, "utf-8");
-            String url = "http://www.infopedia.pt/dicionarios/termos-medicos/" + concept;
-            Document doc = Jsoup.connect(url).timeout(4000).get();
-                    
-            Element elem = doc.select("#infoCliqueContainer").first();
-            
-            if(elem != null){
-                String label = elem.select("span.dolEntrinfoEntrada").first().text();
-                
-                ExternalReference ref = new ExternalReference(url, label, "Infopedia");
-                result.add(ref);
-            }
-                    
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-        
-        return result;
-    }
-    
-    private ArrayList<ExternalReference> getMedicoRespondeReferences(String concept){
-        
-        String originalConcept = concept;
-        ArrayList<ExternalReference> result = new ArrayList<> ();
-        
-        try {
-            concept = URLEncoder.encode(concept, "utf-8");
-            String url = "http://medicoresponde.com.br/busca/?s=" + concept;
-            Document doc = Jsoup.connect(url).get();
-            
-            //if doesn't have div.box, there's no results
-            Elements elems = doc.select("#container div.box");
-            
-            if(elems != null){
-                //String label = elem.select("span.dolEntrinfoEntrada").first().text();
-                
-                ExternalReference ref = new ExternalReference(url, originalConcept, "Medico Responde");
-                result.add(ref);
-            }
-                    
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-        
-        return result;
-    }
-
     
     @Override
     public ArrayList<String> getSemanticTypes(String cui){

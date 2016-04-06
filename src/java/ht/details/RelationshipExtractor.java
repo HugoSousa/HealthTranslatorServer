@@ -5,7 +5,6 @@
  */
 package ht.details;
 
-import ht.details.Relationship;
 import ht.utils.LoggerFactory;
 import ht.utils.ServletContextClass;
 import java.sql.Connection;

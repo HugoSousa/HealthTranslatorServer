@@ -15,13 +15,22 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class ProcessorResult {
     
+    @XmlElement private boolean processed;
+    @XmlElement private String exception;
+    
     @XmlElement private String body;
     @XmlElement private int conceptCounter;
     @XmlElement private long processingTime;
     
     public ProcessorResult(){}
     
+    public ProcessorResult(String exception){
+        this.processed = false;
+        this.exception = exception;
+    }
+    
     public ProcessorResult(String body, int conceptCounter, long processingTime){
+        this.processed = true;
         this.body = body;
         this.conceptCounter = conceptCounter;
         this.processingTime = processingTime;

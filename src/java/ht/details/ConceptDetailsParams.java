@@ -13,4 +13,5 @@ public class ConceptDetailsParams {
     public String cui;
     public String string;
     public String language;
+    public boolean includeEnglishRefs = false;
 }

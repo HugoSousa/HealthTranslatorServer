@@ -40,6 +40,12 @@ public class ConceptDetails {
         String string = param.string;
         String language = param.language;
         
+        Concept concept = new Concept();
+        concept.CUI = cui;
+        concept.string = string;
+        
+        
+        
         ConceptProcessor processor;
         switch (language) {
             case "en":
@@ -53,11 +59,12 @@ public class ConceptDetails {
                 break;
         }
         
-        //processor.getDefinition();
-        Concept concept = new Concept();
-        concept.CUI = cui;
-        concept.string = string;
         ArrayList<ExternalReference> externalReferences = processor.getExternalReferences(concept);
+        if(param.includeEnglishRefs){
+            externalReferences.addAll(ExternalReferencesExtractor.getEnglishExternalReferences(concept));
+        }
+        
+        //processor.getDefinition();
         //processor.getRelationships();
         
         ArrayList<String> stys = processor.getSemanticTypes(concept.CUI);

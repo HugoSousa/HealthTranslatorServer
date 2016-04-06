@@ -40,11 +40,11 @@ public abstract class ConceptProcessor {
     protected String code;
     protected CloseableHttpClient httpclient = HttpClients.createDefault();
     
-    //filterCHVOnly - if set to true, concepts only found in CHV are not recognized
-    protected boolean filterCHVOnly = false;
+    //recognizeCHVOnly - if set to false, concepts only found in CHV are not recognized
+    public boolean recognizeOnlyCHV = true;
     
     //allAccepted: true - all semantic types must be accepted / false - at least one semantic type must be accepted
-    private boolean allAccepted = false; 
+    public boolean allAccepted = false; 
     
     private static Logger logger;
     
@@ -60,6 +60,18 @@ public abstract class ConceptProcessor {
         logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
     }
 
+    public ConceptProcessor(ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
+        Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
+        Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
+        punctuationMatcher = punctuationPattern.matcher("");
+        numberMatcher = numberPattern.matcher("");
+        
+        logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
+        
+        this.stopwords = stopwords;
+        this.tokenizer = tokenizer;
+        this.acceptedSemanticTypes = acceptedSemanticTypes;
+    }
     
     public void setAcceptedSemanticTypes(HashSet<String> semanticTypes){
         this.acceptedSemanticTypes = semanticTypes;

@@ -7,6 +7,7 @@ package ht.concept;
 
 import ht.utils.LoggerFactory;
 import ht.details.ExternalReference;
+import ht.details.ExternalReferencesExtractor;
 import ht.utils.ServletContextClass;
 import java.io.IOException;
 import java.io.StringReader;
@@ -29,6 +30,10 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
 import ht.utils.Inflector;
+import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+import opennlp.tools.tokenize.Tokenizer;
 import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -45,6 +50,13 @@ public class EnglishProcessor extends ConceptProcessor {
     
     public EnglishProcessor() {
         super();
+        code = "en";
+        
+        logger = LoggerFactory.createLogger(EnglishProcessor.class.getName());
+    }
+    
+    public EnglishProcessor(ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
+        super(stopwords, tokenizer, acceptedSemanticTypes);
         code = "en";
         
         logger = LoggerFactory.createLogger(EnglishProcessor.class.getName());
@@ -140,7 +152,7 @@ public class EnglishProcessor extends ConceptProcessor {
                     String CUI = null;
                     String CHVPreferred = null;
                     
-                    if(allResultsFromCHV(rs) && filterCHVOnly){
+                    if(allResultsFromCHV(rs) && recognizeOnlyCHV){
                         return null;
                     }
                     
@@ -252,261 +264,7 @@ public class EnglishProcessor extends ConceptProcessor {
     
     @Override
     public ArrayList<ExternalReference> getExternalReferences(Concept concept) {
-        
-        String SNOMEDCode = getSNOMEDCode(concept);
-        ArrayList<ExternalReference> medlinePlusReferences = getMedlinePlusReferences(SNOMEDCode);
-        ArrayList<ExternalReference> healthFinderReferences = getHealthFinderReferences(concept.string);
-        //ExternalReference BMJReference = getBMJReference(concept.string);
-        //ArrayList<ExternalReference> healthlineReferences = getHealthlineReferences(concept.string);
-        ArrayList<ExternalReference> mayoClinicReferences = getMayoClinicReferences(concept.string);
-        ArrayList<ExternalReference> NIHReferences = getNIHReferences(concept.string);
-        
-        ArrayList<ExternalReference> resultList = new ArrayList<>();
-        resultList.addAll(medlinePlusReferences);
-        resultList.addAll(healthFinderReferences);
-        resultList.addAll(mayoClinicReferences);
-        resultList.addAll(NIHReferences);
-        
-        return resultList;
-    }
-    
-    private String getSNOMEDCode(Concept concept){
-        
-        String SNOMEDCode = null;
-        
-        Connection connMySQL = ServletContextClass.conn_MySQL;
-        PreparedStatement stmt;
-        
-        try{
-            connMySQL.setCatalog("umls_en");
-            stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'SNOMEDCT_US';", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            stmt.setString(1, concept.CUI);
-            ResultSet rs = stmt.executeQuery();
-            
-            while(rs.next()){
-                if(SNOMEDCode == null || (SNOMEDCode != null && rs.getString("TTY").equals("PT")))
-                    SNOMEDCode = rs.getString("SCUI");
-            }
-        }catch (SQLException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-        
-        return SNOMEDCode;
-    }
-    
-    private ArrayList<ExternalReference> getMedlinePlusReferences(String SNOMEDCode){
-        
-        ArrayList<ExternalReference> result = new ArrayList<>();
-        
-        HttpGet httpGet = new HttpGet("https://apps.nlm.nih.gov/medlineplus/services/mpconnect_service.cfm?informationRecipient.languageCode.c=en&knowledgeResponseType=application/json&mainSearchCriteria.v.cs=2.16.840.1.113883.6.96&mainSearchCriteria.v.c=" + SNOMEDCode);
-        CloseableHttpResponse response1 = null;
-        try {
-            response1 = httpclient.execute(httpGet);
-        
-            //System.out.println(response1.getStatusLine());
-            HttpEntity entity1 = response1.getEntity();
-            String json = EntityUtils.toString(entity1, "UTF-8");
-            //System.out.println("JSON: " + json);
-
-            JsonReader reader = Json.createReader(new StringReader(json));
-            JsonObject obj = reader.readObject();
-            reader.close();
-            
-            JsonObject feed = obj.getJsonObject("feed");
-            JsonArray entry = feed.getJsonArray("entry");
-            
-            if(entry.size() >= 1){
-                JsonArray links = ((JsonObject)entry.get(0)).getJsonArray("link");
-                
-                for(JsonValue link: links){
-                    String url = ((JsonObject)link).getString("href");
-                    String label = ((JsonObject)link).getString("title");
-                    ExternalReference ref = new ExternalReference(url, label, "MedlinePlus");
-                    result.add(ref);
-                }
-            }
-            EntityUtils.consume(entity1);
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                response1.close();
-            } catch (IOException ex) {
-                logger.log(Level.SEVERE, null, ex);
-            }
-        }
-        
-        return result;
-    }   
-    
-    private ArrayList<ExternalReference> getHealthFinderReferences(String concept){
-        
-        ArrayList<ExternalReference> result = new ArrayList<>();
-        
-        concept = concept.replaceAll(" ", "%20");
-        HttpGet httpGet = new HttpGet("http://healthfinder.gov/developer/Search.json?api_key=nqmqcoaowrbqxksg&keyword=%22" + concept +"%22");
-        CloseableHttpResponse response1 = null;
-        try {
-            response1 = httpclient.execute(httpGet);
-        
-            //System.out.println(response1.getStatusLine());
-            HttpEntity entity1 = response1.getEntity();
-            String json = EntityUtils.toString(entity1, "UTF-8");
-            //System.out.println("JSON: " + json);
-
-            JsonReader reader = Json.createReader(new StringReader(json));
-            JsonObject obj = reader.readObject();
-            reader.close();            
-           
-            JsonObject res = obj.getJsonObject("Result");
-            String total = res.getString("Total");
-                
-            if(Integer.parseInt(total) > 0){
-                
-                //if only 1 topic, return a JsonObject. Otherwise, returns JsonArray
-                try{
-                    JsonArray topics = res.getJsonArray("Topics");
-                    
-                    for(JsonValue topic: topics){
-                        String url = ((JsonObject)topic).getString("AccessibleVersion");
-                        String label = ((JsonObject)topic).getString("Title");
-                        ExternalReference ref = new ExternalReference(url, label, "Healthfinder");
-                        result.add(ref);
-                    }
-                }catch(java.lang.ClassCastException ex){
-                    JsonObject topic = res.getJsonObject("Topics");
-                    
-                    String url = topic.getString("AccessibleVersion");
-                    String label = topic.getString("Title");
-                    ExternalReference ref = new ExternalReference(url, label, "Healthfinder");
-                    result.add(ref);
-                }
-
-                
-            }
-            EntityUtils.consume(entity1);
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                response1.close();
-            } catch (IOException ex) {
-                logger.log(Level.SEVERE, null, ex);
-            }
-        }
-        
-        return result;
-    }
-    
-    private ExternalReference getBMJReference(String concept){
-        
-        try {
-            concept = concept.replaceAll(" ", "%20");
-            Document doc = Jsoup.connect("http://bestpractice.bmj.com/best-practice/search.html?searchableText=%22" + concept + "%22").followRedirects(false).get();
-            Response response = Jsoup.connect("http://bestpractice.bmj.com/best-practice/search.html?searchableText=%22" + concept + "%22").followRedirects(false).execute();
-            System.out.println(response.url());
-            
-            System.out.println("DOC: " + doc.body());
-            Element elem = doc.select("#content ul.nav-tabs li.selected a").first();
-            
-            if(elem != null){
-                String resultString = elem.text();
-            }
-            
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-        
-        return null;
-    }
-    
-    private ArrayList<ExternalReference> getHealthlineReferences(String concept){
-        //THE RESULTS ARE LOADED DYNAMICALLY, SO JSOUP DOESN'T WORK
-        
-        ArrayList<ExternalReference> result = new ArrayList<> ();
-        
-        try {
-            concept = URLEncoder.encode(concept, "utf-8");//concept.replaceAll(" ", "%20");
-            //Document doc = Jsoup.connect("http://www.healthline.com/search?q1=" + concept ).get();
-            Response response = Jsoup.connect("http://www.healthline.com/search?q1=" + concept ).execute();
-            System.out.println(response.url());
-            
-            /*
-            System.out.println("DOC: " + doc.body());
-            Element elem = doc.select("#___gcse_1 div.gsc-wrapper div.gsc-resultsbox-visible table.gsc-table-result td.gsc-table-cell-snippet-close a.gs-title").first();
-            
-            if(elem != null){
-                String url = elem.attr("data-ctorig");
-                String label = elem.text();
-                ExternalReference ref = new ExternalReference(url, label, "healthline");
-                result.add(ref);
-                //String resultString = elem.text();
-            }
-                    */
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-        
-        return result;
-    }
-    
-    private ArrayList<ExternalReference> getMayoClinicReferences(String concept){
-        
-        ArrayList<ExternalReference> result = new ArrayList<> ();
-        
-        try {
-            concept = URLEncoder.encode(concept, "utf-8");
-            Document doc = Jsoup.connect("http://www.mayoclinic.org/search/search-results?site=patient-care&q=" + concept ).get();
-                    
-            Element elem = doc.select("div#mayo-wrapper div#main-content div.directory li h3 a").first();
-            
-            if(elem != null){
-                String url = elem.attr("href");
-                String label = elem.text();
-                
-                //remove "- Mayo Clinic" from the label
-                int i = label.indexOf("- Mayo Clinic");
-                if(i != -1){
-                    label = label.substring(0, i);
-                }
-                
-                ExternalReference ref = new ExternalReference(url, label, "Mayo Clinic");
-                result.add(ref);
-            }
-                    
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-        
-        return result;
-    }
-    
-    private ArrayList<ExternalReference> getNIHReferences(String concept){
-                
-        ArrayList<ExternalReference> result = new ArrayList<> ();
-        
-        try {
-            concept = URLEncoder.encode(concept, "utf-8");
-            Document doc = Jsoup.connect("http://search.nih.gov/search?utf8=%E2%9C%93&affiliate=hip&query=" + concept ).get();
-                    
-            Elements elems = doc.select("#best-bets div.boosted-content");
-            
-            if(elems != null){
-                for(Element elem: elems){
-                    Element a = elem.select("h4.title a").first();
-                    String url = a.attr("href");
-                    String label = a.text();
-                    
-                    ExternalReference ref = new ExternalReference(url, label, "NIH Health Information");
-                    result.add(ref);
-                }
-            }
-                    
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-        
-        return result;
+        return ExternalReferencesExtractor.getEnglishExternalReferences(concept);
     }
     
     @Override

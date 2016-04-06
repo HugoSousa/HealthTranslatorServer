@@ -83,9 +83,15 @@ public class Processor {
     private final int MAX_RETRIES = 3;
     
     private static Logger logger; 
-
-    private final EnglishProcessor englishProcessor = new EnglishProcessor();
-    private final PortugueseProcessor portugueseProcessor = new PortugueseProcessor();
+    
+    private Tokenizer englishTokenizer;
+    private Tokenizer portugueseTokenizer;
+    
+    private ConcurrentHashMap<String, String> englishStopwords;
+    private ConcurrentHashMap<String, String> portugueseStopwords;
+    
+    //private final EnglishProcessor englishProcessor = new EnglishProcessor();
+    //private final PortugueseProcessor portugueseProcessor = new PortugueseProcessor();
     
     private ResourceBundle englishMessages;
     private ResourceBundle portugueseMessages;
@@ -94,10 +100,7 @@ public class Processor {
      * Creates a new instance of Processor
      */
     public Processor() {
-        
         System.out.println("Processor constructor");
-
-         
     }
     
 
@@ -109,8 +112,8 @@ public class Processor {
 
         System.out.println("Processor preload");
         
-        englishProcessor.setAcceptedSemanticTypes(semanticTypes);
-        portugueseProcessor.setAcceptedSemanticTypes(semanticTypes);
+        //englishProcessor.setAcceptedSemanticTypes(semanticTypes);
+        //portugueseProcessor.setAcceptedSemanticTypes(semanticTypes);
         
         logger = LoggerFactory.createLogger(Processor.class.getName());
         
@@ -118,14 +121,14 @@ public class Processor {
         try {
             is = servletContext.getResourceAsStream("/WEB-INF/models/en-token.bin");
             TokenizerModel modelEN = new TokenizerModel(is);
-            Tokenizer tokenizerEN = new TokenizerME(modelEN);
-            englishProcessor.setTokenizer(tokenizerEN);
+            englishTokenizer = new TokenizerME(modelEN);
+            //englishProcessor.setTokenizer(tokenizerEN);
             is.close();
 
             is = servletContext.getResourceAsStream("/WEB-INF/models/pt-token.bin");
             TokenizerModel modelPT = new TokenizerModel(is);
-            Tokenizer tokenizerPT = new TokenizerME(modelPT);
-            portugueseProcessor.setTokenizer(tokenizerPT);
+            portugueseTokenizer = new TokenizerME(modelPT);
+            //portugueseProcessor.setTokenizer(tokenizerPT);
             is.close();
         } catch (IOException ex) {
             logger.log(Level.SEVERE, null, ex);
@@ -148,8 +151,8 @@ public class Processor {
                     stopwordsEN.put(line.substring(0, index), "");
                 }
             }
-
-            englishProcessor.setStopwords(stopwordsEN);
+            englishStopwords = stopwordsEN;
+            //englishProcessor.setStopwords(stopwordsEN);
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -172,7 +175,8 @@ public class Processor {
                 }
             }
 
-            portugueseProcessor.setStopwords(stopwordsEN);
+            portugueseStopwords = stopwordsPT;
+            //portugueseProcessor.setStopwords(stopwordsEN);
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -198,7 +202,6 @@ public class Processor {
             englishMessages = ResourceBundle.getBundle("MessagesBundle", localeEN, loader);
             portugueseMessages = ResourceBundle.getBundle("MessagesBundle", localePT, loader);
             
-            System.out.println(new String(portugueseMessages.getString("greetings").getBytes("ISO-8859-1"), "UTF-8"));
         }catch(Exception e){
             logger.log(Level.SEVERE, null, e);
         }
@@ -215,6 +218,10 @@ public class Processor {
     @Consumes("application/json")
     public ProcessorResult test(ProcessorParams param) {
         
+        System.out.println(param);
+        if(param.supportedLanguages.isEmpty())
+            param.setDefaultSupportedLanguages();
+        
         
         System.out.println("Starting Processing");
         SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss.SSS");
@@ -222,25 +229,27 @@ public class Processor {
         System.out.println(SDF.format(date));
 
         long startTimeX = System.nanoTime();
-        String decompressed = LZString.decompressFromUTF16(param.getBody());
+        String decompressed = LZString.decompressFromUTF16(param.body);
         long endTimeX = System.nanoTime();
         long durationX = (endTimeX - startTimeX) / 1000000;
         System.out.println("DURATION TO DECOMPRESS: " + durationX + " ms");
         //System.out.println("DECOMPRESSED: " + decompressed);
 
         long startTime = System.nanoTime();
-        ProcessorResult result = processDocumentV2(decompressed);
+        param.body = decompressed;
+        ProcessorResult result = processDocumentV2(param);
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("DURATION: " + duration + " ms");
-
         
         return result;
     }
 
-    public ProcessorResult processDocumentV2(String content) {
+    public ProcessorResult processDocumentV2(ProcessorParams param) {
 
         //System.out.println("CONTENT: " + content);
+        String content = param.body;
+        
         long startTime = System.nanoTime();
         int conceptCounter = 0;
 
@@ -252,20 +261,40 @@ public class Processor {
         String language = detectLanguage(elements);
         ConceptProcessor processor;
         ResourceBundle messages;
+        
+        if(! param.supportedLanguages.contains(language))
+            return new ProcessorResult("This language is not supported");
+        
         switch (language) {
             case "en":
-                processor = englishProcessor;
-                messages = englishMessages;
+                processor = new EnglishProcessor(englishStopwords, englishTokenizer, semanticTypes);
+                //messages = englishMessages;
                 break;
             case "pt":
-                processor = portugueseProcessor;
-                messages = portugueseMessages;
+                processor = new PortugueseProcessor(portugueseStopwords, portugueseTokenizer, semanticTypes);
+                //messages = portugueseMessages;
                 break;
             default:
-                processor = englishProcessor;
-                messages = englishMessages;
+                processor = new EnglishProcessor(englishStopwords, englishTokenizer, semanticTypes);
+                //messages = englishMessages;
                 break;
         }
+        
+        if((param.contentLanguage.equals("detected") && language.equals("en")) || param.contentLanguage.equals("en"))
+            messages = englishMessages;
+        else if((param.contentLanguage.equals("detected") && language.equals("pt")) || param.contentLanguage.equals("pt"))
+            messages = portugueseMessages;
+        else
+            messages = englishMessages;
+        
+        processor.recognizeOnlyCHV = param.recognizeOnlyCHV;
+        
+        if(param.styFilter.equals("all"))
+            processor.allAccepted = true;
+        else if(param.styFilter.equals("one"))
+            processor.allAccepted = false;
+        
+        processor.setAcceptedSemanticTypes(param.semanticTypes);
 
         for (Element element : elements) {
 
