@@ -9,8 +9,6 @@ import ht.utils.LoggerFactory;
 import ht.details.ExternalReference;
 import ht.details.ExternalReferencesExtractor;
 import ht.utils.ServletContextClass;
-import java.io.IOException;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,10 +21,6 @@ import ht.utils.Inflector;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import opennlp.tools.tokenize.Tokenizer;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 /**
  *
@@ -304,5 +298,37 @@ public class PortugueseProcessor extends ConceptProcessor {
         }
         
         return stys;
+    }
+    
+    @Override
+    public String conceptExists(String concept){
+        Connection connMySQL = ServletContextClass.conn_MySQL;
+        PreparedStatement stmt;
+
+        try {
+            connMySQL.setCatalog("umls_pt");
+
+            String query = "select STR, CUI from MRCONSO WHERE STR = ? UNION ALL select pt, cui from chvstring WHERE pt = ?;";
+
+            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+            stmt.setString(1, concept);
+            stmt.setString(2, concept);
+            
+            ResultSet rs = stmt.executeQuery();
+
+            rs.last();
+            int total = rs.getRow();
+            
+            if (total > 0){
+                rs.next();
+                return rs.getString("CUI");
+            }
+            
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
+        return null;
     }
 }

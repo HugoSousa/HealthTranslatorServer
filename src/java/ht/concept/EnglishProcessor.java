@@ -298,4 +298,45 @@ public class EnglishProcessor extends ConceptProcessor {
         
         return stys;
     }
+    
+    //returns the cui of the concept, if it exists, otherwise returns null
+    @Override
+    public String conceptExists(String concept){
+        
+        String cui = null;
+        Connection connMySQL = ServletContextClass.conn_MySQL;
+        PreparedStatement stmt;
+
+        try {
+            connMySQL.setCatalog("umls_en");
+
+            String query = "select * from MRCONSO WHERE STR = ?;";
+
+            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+            stmt.setString(1, concept);
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            rs.last();
+            int total = rs.getRow();
+            rs.beforeFirst();
+            if (total > 0){
+                while(rs.next()){
+                    if (rs.getRow() == 1) {
+                        //assign the first result at least, so it's not null
+                        cui = rs.getString("CUI");
+                    } else {
+                        if ( (! rs.getString("CUI").equals(cui)) && ( rs.getString("TTY").equals("PT") || rs.getString("TTY").equals("SY"))) {
+                            cui = rs.getString("CUI");
+                        }
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
+        return cui;
+    }
 }

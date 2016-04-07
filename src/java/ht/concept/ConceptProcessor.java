@@ -57,7 +57,7 @@ public abstract class ConceptProcessor {
         punctuationMatcher = punctuationPattern.matcher("");
         numberMatcher = numberPattern.matcher("");
         
-        logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
+        logger = LoggerFactory.createLogger(ConceptProcessor.class.getName());
     }
 
     public ConceptProcessor(ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
@@ -66,7 +66,7 @@ public abstract class ConceptProcessor {
         punctuationMatcher = punctuationPattern.matcher("");
         numberMatcher = numberPattern.matcher("");
         
-        logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
+        logger = LoggerFactory.createLogger(ConceptProcessor.class.getName());
         
         this.stopwords = stopwords;
         this.tokenizer = tokenizer;
@@ -277,5 +277,9 @@ public abstract class ConceptProcessor {
             default:
                 return null;
         }
+    }
+    
+    public String conceptExists(String concept){
+        return null;
     }
 }
