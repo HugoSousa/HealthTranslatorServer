@@ -31,6 +31,7 @@ public class ApplicationConfig extends Application {
     private void addRestResourceClasses(Set<Class<?>> resources) {
         resources.add(ht.details.ConceptDetails.class);
         resources.add(ht.process.Processor.class);
+        resources.add(ht.rating.Rating.class);
         resources.add(ht.suggest.Suggest.class);
         resources.add(ht.utils.Ping.class);
     }

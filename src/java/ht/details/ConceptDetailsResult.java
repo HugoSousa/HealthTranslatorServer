@@ -20,14 +20,16 @@ public class ConceptDetailsResult {
     
     @XmlElement private String definition;
     @XmlElement private ArrayList<ExternalReference> references;
-    @XmlElement public ArrayList<String> semanticTypes;
-    @XmlElement public HashMap<String, HashSet<Relationship>> relationships;
+    @XmlElement private ArrayList<String> semanticTypes;
+    @XmlElement private HashMap<String, HashSet<Relationship>> relationships;
+    @XmlElement private boolean hasRating;
     
     public ConceptDetailsResult(){}
     
-    public ConceptDetailsResult(ArrayList<ExternalReference> refs, ArrayList<String> stys, HashMap<String, HashSet<Relationship>> rels){
+    public ConceptDetailsResult(ArrayList<ExternalReference> refs, ArrayList<String> stys, HashMap<String, HashSet<Relationship>> rels, boolean hasRating){
         this.references = refs;
         this.semanticTypes = stys;
         this.relationships = rels;
+        this.hasRating = hasRating;
     }
 }

@@ -9,6 +9,9 @@ import ht.details.ExternalReference;
 import ht.details.Relationship;
 import ht.utils.LoggerFactory;
 import ht.details.RelationshipExtractor;
+import ht.utils.ServletContextClass;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -256,7 +259,7 @@ public abstract class ConceptProcessor {
     public HashMap<String, HashSet<Relationship>> getRelationships(String sty, String cui){
         
         HashMap<String, List<String>> rules = new HashMap<>();
-        HashMap<String, HashSet<Relationship>> rels = new HashMap<>();
+        HashMap<String, HashSet<Relationship>> rels;// = new HashMap<>();
         switch(sty.toLowerCase()){
             case "disease or syndrome":
                 rules.put("same_as", null);
@@ -281,5 +284,32 @@ public abstract class ConceptProcessor {
     
     public String conceptExists(String concept){
         return null;
+    }
+    
+    public boolean hasRating(String tuid, String cui){
+        
+        Connection connMySQL = ServletContextClass.conn_MySQL;
+        PreparedStatement stmt;
+        
+        String database = "umls_" + code;
+        try {
+            connMySQL.setCatalog(database);
+            
+            String query = "SELECT * FROM rating WHERE tuid = ? AND cui = ?;";
+            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+            stmt.setString(1, tuid);
+            stmt.setString(2, cui);
+
+            ResultSet rs = stmt.executeQuery();
+            if(! rs.next()){
+                return false;
+            }
+            
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
+        return true;
     }
 }

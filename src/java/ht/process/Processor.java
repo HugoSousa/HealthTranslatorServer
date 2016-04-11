@@ -403,7 +403,7 @@ public class Processor {
         long endTime = System.nanoTime();
         long duration = (endTime - startTime)/1000000;// / 1000000;
         //System.out.println("BODY: " + doc.body().toString());
-        ProcessorResult result = new ProcessorResult(doc.body().toString(), conceptCounter, duration);
+        ProcessorResult result = new ProcessorResult(doc.body().toString(), conceptCounter, duration, language);
         return result;
     }
 

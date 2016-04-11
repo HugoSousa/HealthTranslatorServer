@@ -21,6 +21,7 @@ public class ProcessorResult {
     @XmlElement private String body;
     @XmlElement private int conceptCounter;
     @XmlElement private long processingTime;
+    @XmlElement private String language;
     
     public ProcessorResult(){}
     
@@ -29,11 +30,12 @@ public class ProcessorResult {
         this.exception = exception;
     }
     
-    public ProcessorResult(String body, int conceptCounter, long processingTime){
+    public ProcessorResult(String body, int conceptCounter, long processingTime, String language){
         this.processed = true;
         this.body = body;
         this.conceptCounter = conceptCounter;
         this.processingTime = processingTime;
+        this.language = language;
     }
 
 }

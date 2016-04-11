@@ -76,8 +76,10 @@ public class ConceptDetails {
         else if(stys.contains("Pharmacologic Substance"))
             rels = processor.getRelationships("pharmacologic substance", concept.CUI);
         
-        ConceptDetailsResult result = new ConceptDetailsResult(externalReferences, stys, rels);
+        boolean hasRating = processor.hasRating(param.tuid, concept.CUI);
+        
+        ConceptDetailsResult result = new ConceptDetailsResult(externalReferences, stys, rels, hasRating);
         
         return result;
-    }
+    }    
 }

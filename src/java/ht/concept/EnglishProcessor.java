@@ -9,9 +9,6 @@ import ht.utils.LoggerFactory;
 import ht.details.ExternalReference;
 import ht.details.ExternalReferencesExtractor;
 import ht.utils.ServletContextClass;
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,26 +16,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-import javax.json.JsonValue;
 import opennlp.tools.util.Span;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.util.EntityUtils;
 import ht.utils.Inflector;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 import opennlp.tools.tokenize.Tokenizer;
-import org.jsoup.Connection.Response;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 /**
  *
