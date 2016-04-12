@@ -221,7 +221,7 @@ public class PortugueseProcessor extends ConceptProcessor {
     
     @Override
     public String getDefinition(Concept concept) {
-        /*
+        
         long startTime = System.nanoTime();
         
         String definition = null;
@@ -250,8 +250,8 @@ public class PortugueseProcessor extends ConceptProcessor {
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("PROCESSING FOR TOKEN " + concept.string + " (" + concept.CUI + ")" +": " + duration + " ms");
-        */
-        return null;
+        
+        return definition;
     }
     
     @Override
