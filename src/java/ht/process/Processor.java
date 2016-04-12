@@ -257,8 +257,11 @@ public class Processor {
         doc.outputSettings(new Document.OutputSettings().prettyPrint(false));
 
         Elements elements = doc.body().children().select("*");
-
-        String language = detectLanguage(elements);
+        
+        String language = param.language;
+        if(language == null) 
+            language = detectLanguage(elements);
+        
         ConceptProcessor processor;
         ResourceBundle messages;
         

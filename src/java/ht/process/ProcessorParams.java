@@ -6,9 +6,7 @@
 package ht.process;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -20,6 +18,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ProcessorParams {
     @XmlElement public String body;
     
+    @XmlElement public String language;
     @XmlElement public String styFilter = "one";
     @XmlElement public boolean recognizeOnlyCHV = true;
     @XmlElement public ArrayList<String> supportedLanguages = new ArrayList<>();
