@@ -38,8 +38,7 @@ public class Rating {
     @Consumes("application/json")
     @Produces("application/json")
     public RatingResult test(RatingParams param) {
-        
-        RatingResult result;
+
         boolean success = insertResult(param.cui, param.tuid, param.language, param.definition, param.externalReferences, param.relationships, param.general);
         
         if(success)

@@ -138,7 +138,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                     
                     if(allResultsFromCHV(rs)){
                         
-                        if(recognizeOnlyCHV)
+                        if(! recognizeOnlyCHV)
                             return null;
                         //if there's only many CHV results, it's probably a bad translation (example: "elevado") 
                         if(total < 4){
@@ -168,8 +168,8 @@ public class PortugueseProcessor extends ConceptProcessor {
                                 //assign the first result at least, so it's not null
                                 CUI = rs.getString("CUI");
                             } else {
-                                if(rs.getString("CUI") != CUI){
-                                    //what to do?
+                                if( ! rs.getString("CUI").equals(CUI) && rs.getString("SAB").equals("CHV")){
+                                    CUI = rs.getString("CUI");
                                 }
                             }
 
@@ -179,8 +179,9 @@ public class PortugueseProcessor extends ConceptProcessor {
                                 /*if(TUI == null){
                                     TUI = rs.getString("tui");
                                 }*/
-                                tuis.add(rs.getString("tui"));
                             }
+                            
+                            tuis.add(rs.getString("tui"));
                         }
                     }
                     

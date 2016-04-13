@@ -88,9 +88,11 @@ public class EnglishProcessor extends ConceptProcessor {
                 }
             }
             
+            
             String queryToken = finalToken.toLowerCase();
             String originalString = finalToken;
             String singularQueryToken = null;
+
             try {
                 singularQueryToken = Inflector.singularize(queryToken, "en");
             } catch (Exception ex) {
@@ -134,7 +136,7 @@ public class EnglishProcessor extends ConceptProcessor {
                     String CUI = null;
                     String CHVPreferred = null;
                     
-                    if(allResultsFromCHV(rs) && recognizeOnlyCHV){
+                    if(allResultsFromCHV(rs) && ! recognizeOnlyCHV){
                         return null;
                     }
                     

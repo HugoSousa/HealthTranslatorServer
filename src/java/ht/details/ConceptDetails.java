@@ -44,8 +44,6 @@ public class ConceptDetails {
         concept.CUI = cui;
         concept.string = string;
         
-        
-        
         ConceptProcessor processor;
         switch (language) {
             case "en":
