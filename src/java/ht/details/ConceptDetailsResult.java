@@ -26,7 +26,8 @@ public class ConceptDetailsResult {
     
     public ConceptDetailsResult(){}
     
-    public ConceptDetailsResult(ArrayList<ExternalReference> refs, ArrayList<String> stys, HashMap<String, HashSet<Relationship>> rels, boolean hasRating){
+    public ConceptDetailsResult(String definition, ArrayList<ExternalReference> refs, ArrayList<String> stys, HashMap<String, HashSet<Relationship>> rels, boolean hasRating){
+        this.definition = definition;
         this.references = refs;
         this.semanticTypes = stys;
         this.relationships = rels;

@@ -62,7 +62,7 @@ public class ConceptDetails {
             externalReferences.addAll(ExternalReferencesExtractor.getEnglishExternalReferences(concept));
         }
         
-        //processor.getDefinition();
+        String definition = processor.getDefinition(concept);
         //processor.getRelationships();
         
         ArrayList<String> stys = processor.getSemanticTypes(concept.CUI);
@@ -76,7 +76,7 @@ public class ConceptDetails {
         
         boolean hasRating = processor.hasRating(param.tuid, concept.CUI);
         
-        ConceptDetailsResult result = new ConceptDetailsResult(externalReferences, stys, rels, hasRating);
+        ConceptDetailsResult result = new ConceptDetailsResult(definition, externalReferences, stys, rels, hasRating);
         
         return result;
     }    

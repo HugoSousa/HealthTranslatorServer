@@ -308,6 +308,8 @@ public class Processor {
             }
             
             if(element.tagName().equals("x-health-translator")){
+                if(element.hasClass("health-translator"))
+                    conceptCounter++;
                 continue;
             }
 
@@ -424,7 +426,7 @@ public class Processor {
         }
             
         if(bestMatch.definition != null){
-            definition = "<p>" + messages.getString("definition") + "<br>" + bestMatch.definition + "</p>";
+            definition = "<p class=\"definition\">" + bestMatch.definition + "</p>";
         }else{
             definition = "<p>" + messages.getString("sorry") + "<br>" +  messages.getString("no_definition") + "</p>"; 
         }
