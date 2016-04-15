@@ -306,6 +306,10 @@ public class Processor {
                 element.remove();
                 continue;
             }
+            
+            if(element.tagName().equals("x-health-translator")){
+                continue;
+            }
 
             //System.out.println("ELEMENT: " + element.tagName());
             try {
