@@ -252,7 +252,7 @@ public abstract class ConceptProcessor {
         return null;
     }
     
-    public ArrayList<String> getSemanticTypes(String cui){
+    public ArrayList<SemanticType> getSemanticTypes(String cui){
         return null;
     }
     
@@ -260,8 +260,8 @@ public abstract class ConceptProcessor {
         
         HashMap<String, List<String>> rules = new HashMap<>();
         HashMap<String, HashSet<Relationship>> rels;// = new HashMap<>();
-        switch(sty.toLowerCase()){
-            case "disease or syndrome":
+        switch(sty.toUpperCase()){
+            case "T047":
                 rules.put("same_as", null);
                 rules.put("due_to", asList("T046", "T047"));
                 rules.put("cause_of", asList("T046", "T047"));
@@ -270,7 +270,7 @@ public abstract class ConceptProcessor {
                 rules.put("finding_site_of", asList("T022", "T023"));
                 rels = RelationshipExtractor.extract(rules, cui, code);
                 return rels;
-            case "pharmacologic substance":
+            case "T121":
                 rules.put("same_as", null);
                 rules.put("inverse_isa", asList("T121"));
                 rules.put("isa", asList("T121"));

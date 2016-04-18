@@ -9,6 +9,7 @@ import ht.concept.ConceptProcessor;
 import ht.concept.Concept;
 import ht.concept.EnglishProcessor;
 import ht.concept.PortugueseProcessor;
+import ht.concept.SemanticType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,14 +66,14 @@ public class ConceptDetails {
         String definition = processor.getDefinition(concept);
         //processor.getRelationships();
         
-        ArrayList<String> stys = processor.getSemanticTypes(concept.CUI);
+        ArrayList<SemanticType> stys = processor.getSemanticTypes(concept.CUI);
         
         HashMap<String, HashSet<Relationship>> rels = null;
         
-        if(stys.contains("Disease or Syndrome"))
-            rels = processor.getRelationships("disease or syndrome", concept.CUI);
-        else if(stys.contains("Pharmacologic Substance"))
-            rels = processor.getRelationships("pharmacologic substance", concept.CUI);
+        if(stys.contains(new SemanticType("T047", null)))
+            rels = processor.getRelationships("T047", concept.CUI);
+        else if(stys.contains(new SemanticType("T121", null)))
+            rels = processor.getRelationships("T121", concept.CUI);
         
         boolean hasRating = processor.hasRating(param.tuid, concept.CUI);
         

@@ -8,6 +8,7 @@ package ht.suggest;
 import ht.concept.ConceptProcessor;
 import ht.concept.EnglishProcessor;
 import ht.concept.PortugueseProcessor;
+import ht.concept.SemanticType;
 import ht.utils.Inflector;
 import ht.utils.LoggerFactory;
 import ht.utils.ServletContextClass;
@@ -76,10 +77,10 @@ public class Suggest {
                 return new SuggestResult(false, "You have suggested this concept before.");
             }
         }else{
-            ArrayList<String> semanticTypes = processor.getSemanticTypes(cui);
+            ArrayList<SemanticType> semanticTypes = processor.getSemanticTypes(cui);
             String reason = "The concept '" + suggestion + "' already exists. It belongs to the following semantic types:<br>";
             for(int i = 0; i < semanticTypes.size(); i++){
-                reason += semanticTypes.get(i);
+                reason += semanticTypes.get(i).str;
                 if(i < semanticTypes.size() - 1)
                     reason += "<br>";
             }

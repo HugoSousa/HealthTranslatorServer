@@ -154,8 +154,6 @@ public class PortugueseProcessor extends ConceptProcessor {
                                 tuis.add(rs.getString("tui"));
                                 
                                 CHVPreferred = rs.getString("chv_pref_pt");
-                                //TUIPreferred??
-                                //CHVPreferred??
                             }
                             
                             if(tuis.size() > 1){
@@ -168,12 +166,12 @@ public class PortugueseProcessor extends ConceptProcessor {
                                 //assign the first result at least, so it's not null
                                 CUI = rs.getString("CUI");
                             } else {
-                                if( ! rs.getString("CUI").equals(CUI) && rs.getString("SAB").equals("CHV")){
+                                if( ! rs.getString("CUI").equals(CUI) && ! rs.getString("SAB").equals("CHV")){
                                     CUI = rs.getString("CUI");
                                 }
                             }
 
-                            if (rs.getString("SAB").equals("CHV")) {
+                            if (rs.getString("SAB").equals("CHV") && rs.getString("CUI").equals(CUI)) {
                                 CHVPreferred = rs.getString("chv_pref_pt");
                             }else{
                                 /*if(TUI == null){
@@ -261,9 +259,9 @@ public class PortugueseProcessor extends ConceptProcessor {
     }
     
     @Override
-    public ArrayList<String> getSemanticTypes(String cui){
+    public ArrayList<SemanticType> getSemanticTypes(String cui){
         
-        ArrayList<String> stys = new ArrayList<>();
+        ArrayList<SemanticType> stys = new ArrayList<>();
         
         Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
@@ -280,17 +278,34 @@ public class PortugueseProcessor extends ConceptProcessor {
             ResultSet rs = stmt.executeQuery();
             
             while(rs.next()){
-                String sty = rs.getString("STY");
+                String str = rs.getString("STY");
+                String tui = rs.getString("TUI");
                 
-                if(sty.contains(";")){
-                    String[] stySplit = sty.split(";");
+                if(! stys.contains(new SemanticType(str, null)))
+                    stys.add(new SemanticType(tui, str));
+            }
+            
+            //only in CHV
+            query = "SELECT *, (SELECT sty FROM mrsty WHERE c.tui = tui LIMIT 1) as STY FROM chvconcept c WHERE c.CUI = ?;";
+            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
+            stmt.setString(1, cui);
+            rs = stmt.executeQuery();
+            
+            while(rs.next()){
+                
+                String tui = rs.getString("TUI");
+                String str = rs.getString("STY");
+                
+                if(str.contains(";")){
+                    String[] stySplit = str.split(";");
                     for(String _sty : stySplit){
-                        if(! stys.contains(_sty))
-                            stys.add(_sty);
+                        if(! stys.contains(new SemanticType(_sty, null)))
+                            stys.add(new SemanticType(tui, str));
                     }
                 }else{
-                    if(! stys.contains(sty))
-                        stys.add(sty);
+                    if(! stys.contains(new SemanticType(tui, null)))
+                        stys.add(new SemanticType(tui, str));
                 }
             }
             

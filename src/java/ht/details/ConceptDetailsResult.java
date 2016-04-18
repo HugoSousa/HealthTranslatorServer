@@ -5,6 +5,7 @@
  */
 package ht.details;
 
+import ht.concept.SemanticType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,13 +21,13 @@ public class ConceptDetailsResult {
     
     @XmlElement private String definition;
     @XmlElement private ArrayList<ExternalReference> references;
-    @XmlElement private ArrayList<String> semanticTypes;
+    @XmlElement private ArrayList<SemanticType> semanticTypes;
     @XmlElement private HashMap<String, HashSet<Relationship>> relationships;
     @XmlElement private boolean hasRating;
     
     public ConceptDetailsResult(){}
     
-    public ConceptDetailsResult(String definition, ArrayList<ExternalReference> refs, ArrayList<String> stys, HashMap<String, HashSet<Relationship>> rels, boolean hasRating){
+    public ConceptDetailsResult(String definition, ArrayList<ExternalReference> refs, ArrayList<SemanticType> stys, HashMap<String, HashSet<Relationship>> rels, boolean hasRating){
         this.definition = definition;
         this.references = refs;
         this.semanticTypes = stys;

@@ -252,9 +252,9 @@ public class EnglishProcessor extends ConceptProcessor {
     }
     
     @Override
-    public ArrayList<String> getSemanticTypes(String cui){
+    public ArrayList<SemanticType> getSemanticTypes(String cui){
         
-        ArrayList<String> stys = new ArrayList<>();
+        ArrayList<SemanticType> stys = new ArrayList<>();
         
         Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
@@ -272,8 +272,10 @@ public class EnglishProcessor extends ConceptProcessor {
             
             while(rs.next()){
                 String sty = rs.getString("STY");
-                if(! stys.contains(sty))
-                    stys.add(sty);
+                String tui = rs.getString("TUI");
+                
+                if(! stys.contains(new SemanticType(sty, null)))
+                    stys.add(new SemanticType(tui, sty));
             }
             
         } catch (SQLException ex) {
