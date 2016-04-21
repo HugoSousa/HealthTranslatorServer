@@ -176,14 +176,23 @@ public class EnglishProcessor extends ConceptProcessor {
                             rs = stmt.executeQuery();
                             if (rs.next()) {
                                 CHVPreferred = rs.getString("STR");
+                                bestMatch.setCHVPreferred(CHVPreferred);
                             }/* else {
                                 //the concept may not be in CHV
                                 System.out.println("The concept " + CUI + " (" + singularQueryToken + ") is not in CHV.");
                             }
                             */
                         }
-
-                        bestMatch.setCHVPreferred(CHVPreferred);
+                        
+                        String UMLSPreferred = null;
+                        stmt = connMySQL.prepareStatement("select * from MRCONSO c WHERE c.ts = 'P' AND c.stt = 'PF' AND c.ispref = 'Y' AND c.lat = 'ENG' AND c.cui = ?;");
+                        stmt.setString(1, CUI);
+                        rs = stmt.executeQuery();
+                        if (rs.next()) {
+                            UMLSPreferred = rs.getString("STR");
+                        }
+                        
+                        bestMatch.setUMLSPreferred(UMLSPreferred);
 
                     }
                 }

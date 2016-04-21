@@ -19,8 +19,8 @@ public class Concept {
     
     public String definition;
     public String CHVPreferred;
+    public String UMLSPreferred;
    
-    
     public Concept(){}
     
     public Concept(String string, Span span, int words){
@@ -35,7 +35,13 @@ public class Concept {
     
     public void setCHVPreferred(String CHVPreferred){
         if(CHVPreferred != null){
-            this.CHVPreferred = CHVPreferred.replace("'", "&#39;");
+            this.CHVPreferred = CHVPreferred.toLowerCase().replace("'", "&#39;");
+        }
+    }
+    
+    public void setUMLSPreferred(String UMLSPreferred){
+        if(UMLSPreferred != null){
+            this.UMLSPreferred = UMLSPreferred.toLowerCase().replace("'", "&#39;");
         }
     }
 }

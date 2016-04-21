@@ -417,20 +417,29 @@ public class Processor {
     }
 
     private String replaceConcept(Concept bestMatch, String language, ResourceBundle messages) {
-                
-        String CHVPreferred = "";
+        
+        boolean hasDifferentCHV = bestMatch.CHVPreferred != null && ! bestMatch.string.equalsIgnoreCase(bestMatch.CHVPreferred);
+        boolean hasDifferentUMLS = bestMatch.UMLSPreferred != null && ! bestMatch.string.equalsIgnoreCase(bestMatch.UMLSPreferred);
+        String preferred = "";
         String definition = "";
         
-        if(bestMatch.CHVPreferred != null && ! bestMatch.string.equals(bestMatch.CHVPreferred)){
-            CHVPreferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" " + messages.getString("lay_terminology") + "</p>";
+        if(hasDifferentCHV && hasDifferentUMLS)
+        {
+            preferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" " + messages.getString("lay_terminology") + " " + messages.getString("or") + " \"" + " " + bestMatch.UMLSPreferred + "\" " + messages.getString("medical_terminology") + "</p>";
+        }else if(hasDifferentCHV){
+            preferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" " + messages.getString("lay_terminology") + "</p>";
+        }else if(hasDifferentUMLS){
+            preferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.UMLSPreferred + "\" " + messages.getString("medical_terminology") + "</p>";
         }
+        
+        
             
         if(bestMatch.definition != null){
             definition = "<p class=\"definition\">" + bestMatch.definition + "</p>";
         }else{
             definition = "<p>" + messages.getString("sorry") + "<br>" +  messages.getString("no_definition") + "</p>"; 
         }
-        String tooltip = CHVPreferred + definition + "<a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">" + messages.getString("more_info") + "</a>";
+        String tooltip = preferred + definition + "<a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">" + messages.getString("more_info") + "</a>";
         String newString = "<x-health-translator style='display:inline' class='health-translator'><x-health-translator class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</x-health-translator></x-health-translator>";
 
         return newString;

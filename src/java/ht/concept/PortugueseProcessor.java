@@ -133,6 +133,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                     
                     String CUI = null;
                     String CHVPreferred = null;
+                    String UMLSPreferred = null;
                     ArrayList<String> tuis = new ArrayList<>();
                     int TUIPreferred = -1;
                     
@@ -149,16 +150,11 @@ public class PortugueseProcessor extends ConceptProcessor {
                                 if (rs.getRow() == 1) {
                                     //assign the first result at least, so it's not null
                                     CUI = rs.getString("CUI");
-                                }
-                                
-                                tuis.add(rs.getString("tui"));
-                                
-                                CHVPreferred = rs.getString("chv_pref_pt");
-                            }
-                            
-                            if(tuis.size() > 1){
-                                //there are multiple results, elements of tuis may be splitted by ";"
-                            }
+                                    tuis.add(rs.getString("tui"));
+                                    CHVPreferred = rs.getString("chv_pref_pt");
+                                    UMLSPreferred = rs.getString("umls_pref_pt");
+                                }  
+                            }                         
                         }
                     }else{                  
                         while (rs.next()) {
@@ -173,13 +169,16 @@ public class PortugueseProcessor extends ConceptProcessor {
 
                             if (rs.getString("SAB").equals("CHV") && rs.getString("CUI").equals(CUI)) {
                                 CHVPreferred = rs.getString("chv_pref_pt");
-                            }else{
-                                /*if(TUI == null){
-                                    TUI = rs.getString("tui");
-                                }*/
                             }
                             
                             tuis.add(rs.getString("tui"));
+                        }
+                        
+                        stmt = connMySQL.prepareStatement("select * from MRCONSO c WHERE c.ts = 'P' AND c.stt = 'PF' AND c.ispref = 'Y' AND c.lat = 'POR' AND c.cui = ?;");
+                        stmt.setString(1, CUI);
+                        rs = stmt.executeQuery();
+                        if (rs.next()) {
+                            UMLSPreferred = rs.getString("STR");
                         }
                     }
                     
@@ -198,6 +197,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
                         bestMatch.setCHVPreferred(CHVPreferred);
+                        bestMatch.setUMLSPreferred(UMLSPreferred);
                         
                         /*
                         if (CHVPreferred == null) {
