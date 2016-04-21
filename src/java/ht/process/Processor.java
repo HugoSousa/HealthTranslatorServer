@@ -348,7 +348,7 @@ public class Processor {
                                 }
                             }
 
-                            if (bestMatch != null) {
+                            if (bestMatch != null && ((! param.recognizeWithoutDefinition && bestMatch.definition != null) || param.recognizeWithoutDefinition) ) {
                                 i += bestMatch.words - 1;
                                 conceptCounter++;
 
@@ -421,8 +421,8 @@ public class Processor {
         String CHVPreferred = "";
         String definition = "";
         
-        if(bestMatch.CHVPreferred != null){
-            CHVPreferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" </p>";
+        if(bestMatch.CHVPreferred != null && ! bestMatch.string.equals(bestMatch.CHVPreferred)){
+            CHVPreferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" " + messages.getString("lay_terminology") + "</p>";
         }
             
         if(bestMatch.definition != null){

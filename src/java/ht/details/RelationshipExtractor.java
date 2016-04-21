@@ -36,20 +36,21 @@ public class RelationshipExtractor {
             relationshipRules.keySet().toArray(relList);
             
             StringBuilder sb = new StringBuilder();
-            String query =  "SELECT rel.cui1, rel.aui1, con.sab, con.str str1, rel.rela, rel.cui2, rel.aui2, con2.sab, con2.str str2, rel.rg, s.tui, s.sty " +
+            String query =  "SELECT rel.cui1, rel.aui1, con.sab, con.str str1, ifnull(rel.rela,'empty') AS rela, rel.cui2, rel.aui2, con2.sab, con2.str str2, rel.rg, s.tui, s.sty " +
                             "FROM mrrel rel " +
                             "JOIN mrconso con ON rel.aui1 = con.aui " +
                             "JOIN mrconso con2 ON rel.aui2 = con2.aui " +
                             "JOIN mrsty s ON con2.cui = s.cui " +
                             "WHERE rel.cui1 = ? " +
                             "AND rel.cui1 <> rel.cui2 " +
-                            "AND rela IN (";
+                            "AND ( rela IS NULL OR " +
+                            "rela IN (";
             sb = sb.append(query);
             for(String rel: relList){
                 sb.append("?,");
             }
             sb.deleteCharAt(sb.length()-1);
-            sb.append(")");
+            sb.append("))");
             query = sb.toString();
 
             stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -74,7 +75,7 @@ public class RelationshipExtractor {
                     if(rela.equals(relation)){
                         if( ! str1.equals(str2)){
                             List<String> acceptedTuiList = relationshipRules.get(relation);
-                            if(acceptedTuiList == null || (acceptedTuiList != null && acceptedTuiList.contains(tui))){
+                            if(acceptedTuiList == null || (acceptedTuiList.contains(tui))){
                                 Relationship rel = new Relationship(str1, rela, str2, cui2);
                                 addRelationshipToResult(result, rela, rel); 
                             }
@@ -92,6 +93,7 @@ public class RelationshipExtractor {
     }
     
     private static void addRelationshipToResult(HashMap<String, HashSet<Relationship>> result, String rela, Relationship rel) {
+        
         if( ! result.containsKey(rela)){
             HashSet<Relationship> rels = new HashSet<>();
             rels.add(rel);

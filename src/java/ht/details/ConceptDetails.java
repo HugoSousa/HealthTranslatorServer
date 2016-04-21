@@ -70,11 +70,13 @@ public class ConceptDetails {
         
         HashMap<String, HashSet<Relationship>> rels = null;
         
+        rels = processor.getRelationships(null, concept.CUI);
+        /*
         if(stys.contains(new SemanticType("T047", null)))
             rels = processor.getRelationships("T047", concept.CUI);
         else if(stys.contains(new SemanticType("T121", null)))
             rels = processor.getRelationships("T121", concept.CUI);
-        
+        */
         boolean hasRating = processor.hasRating(param.tuid, concept.CUI);
         
         ConceptDetailsResult result = new ConceptDetailsResult(definition, externalReferences, stys, rels, hasRating);

@@ -286,7 +286,7 @@ public class PortugueseProcessor extends ConceptProcessor {
             }
             
             //only in CHV
-            query = "SELECT *, (SELECT sty FROM mrsty WHERE c.tui = tui LIMIT 1) as STY FROM chvconcept c WHERE c.CUI = ?;";
+            query = "SELECT * FROM chvconcept c WHERE c.CUI = ?;";
             stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
             stmt.setString(1, cui);
@@ -295,17 +295,20 @@ public class PortugueseProcessor extends ConceptProcessor {
             while(rs.next()){
                 
                 String tui = rs.getString("TUI");
-                String str = rs.getString("STY");
                 
-                if(str.contains(";")){
-                    String[] stySplit = str.split(";");
-                    for(String _sty : stySplit){
-                        if(! stys.contains(new SemanticType(_sty, null)))
+                if(tui.contains(";")){
+                    String[] stySplit = tui.split(";");
+                    for(String _sty : stySplit){       
+                        if(! stys.contains(new SemanticType(_sty, null))){
+                            String str = getSemanticTypeString(_sty);
                             stys.add(new SemanticType(tui, str));
+                        }
                     }
                 }else{
-                    if(! stys.contains(new SemanticType(tui, null)))
+                    if(! stys.contains(new SemanticType(tui, null))){
+                        String str = getSemanticTypeString(tui);
                         stys.add(new SemanticType(tui, str));
+                    }
                 }
             }
             
@@ -314,6 +317,30 @@ public class PortugueseProcessor extends ConceptProcessor {
         }
         
         return stys;
+    }
+    
+    private String getSemanticTypeString(String tui){
+        
+        Connection connMySQL = ServletContextClass.conn_MySQL;
+        PreparedStatement stmt;
+        String str = null;
+        
+        String database = "umls_" + code;
+        try {
+            connMySQL.setCatalog(database);
+        
+            String query = "SELECT sty FROM mrsty WHERE tui = ? LIMIT 1";
+            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt.setString(1, tui);
+            ResultSet rs = stmt.executeQuery();
+            rs.next();
+            str = rs.getString("sty");
+            
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
+        return str;
     }
     
     @Override

@@ -259,7 +259,18 @@ public abstract class ConceptProcessor {
     public HashMap<String, HashSet<Relationship>> getRelationships(String sty, String cui){
         
         HashMap<String, List<String>> rules = new HashMap<>();
-        HashMap<String, HashSet<Relationship>> rels;// = new HashMap<>();
+        HashMap<String, HashSet<Relationship>> rels;
+        rules.put("empty", null);
+        rules.put("same_as", null);
+        rules.put("due_to", null);
+        rules.put("cause_of", null);
+        rules.put("inverse_isa", null);
+        rules.put("isa", null);
+        rules.put("finding_site_of", null);
+        rules.put("has_causative_agent", null);
+        rules.put("has_causative_agent", null);
+        rels = RelationshipExtractor.extract(rules, cui, code);
+        /*
         switch(sty.toUpperCase()){
             case "T047":
                 rules.put("same_as", null);
@@ -280,6 +291,8 @@ public abstract class ConceptProcessor {
             default:
                 return null;
         }
+        */
+        return rels;
     }
     
     public String conceptExists(String concept){
