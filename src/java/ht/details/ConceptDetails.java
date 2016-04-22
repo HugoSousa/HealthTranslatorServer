@@ -75,7 +75,6 @@ public class ConceptDetails {
         
         ArrayList<ExternalReference> externalReferences = processor.getExternalReferences(concept);
         if(param.includeEnglishRefs){
-            
             externalReferences.addAll(new ExternalReferencesExtractor(connection).getEnglishExternalReferences(concept));
         }
         

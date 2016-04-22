@@ -6,6 +6,7 @@
 package ht.details;
 
 import ht.concept.Concept;
+import ht.utils.Inflector;
 import ht.utils.LoggerFactory;
 import java.io.IOException;
 import java.io.StringReader;
@@ -60,6 +61,7 @@ public class ExternalReferencesExtractor {
         ArrayList<ExternalReference> healthFinderReferences = getHealthFinderReferences(concept.string);
         ArrayList<ExternalReference> mayoClinicReferences = getMayoClinicReferences(concept.string);
         ArrayList<ExternalReference> NIHReferences = getNIHReferences(concept.string);
+        ExternalReference wikipediaReference = getWikipediaReference(concept, "en");
         
         String preferredTerm = getPreferredTermEnglish(concept.CUI);
         if(preferredTerm != null && ! preferredTerm.equalsIgnoreCase(concept.string)){
@@ -72,20 +74,25 @@ public class ExternalReferencesExtractor {
             resultList.addAll(NIHReferencesPreferred);
         }
         
-        if(concept.CHVPreferred != null && ! concept.CHVPreferred.equalsIgnoreCase(concept.string) && ! concept.CHVPreferred.equalsIgnoreCase(preferredTerm)){
-            ArrayList<ExternalReference> healthFinderReferencesLay = getHealthFinderReferences(concept.CHVPreferred);
-            ArrayList<ExternalReference> mayoClinicReferencesLay = getMayoClinicReferences(concept.CHVPreferred);
-            ArrayList<ExternalReference> NIHReferencesLay = getNIHReferences(concept.CHVPreferred);
-            
-            resultList.addAll(healthFinderReferencesLay);
-            resultList.addAll(mayoClinicReferencesLay);
-            resultList.addAll(NIHReferencesLay);
+        try{
+            if(concept.CHVPreferred != null && ! (Inflector.singularize(concept.CHVPreferred, "en")).equalsIgnoreCase(Inflector.singularize(concept.string, "en")) && ! (Inflector.singularize(concept.CHVPreferred, "en")).equalsIgnoreCase(Inflector.singularize(preferredTerm, "en"))){
+                ArrayList<ExternalReference> healthFinderReferencesLay = getHealthFinderReferences(concept.CHVPreferred);
+                ArrayList<ExternalReference> mayoClinicReferencesLay = getMayoClinicReferences(concept.CHVPreferred);
+                ArrayList<ExternalReference> NIHReferencesLay = getNIHReferences(concept.CHVPreferred);
+
+                resultList.addAll(healthFinderReferencesLay);
+                resultList.addAll(mayoClinicReferencesLay);
+                resultList.addAll(NIHReferencesLay);
+            }
+        }catch(Exception ex){
+            logger.log(Level.SEVERE, null, ex);
         }
         
         resultList.addAll(medlinePlusReferences);
         resultList.addAll(healthFinderReferences);
         resultList.addAll(mayoClinicReferences);
         resultList.addAll(NIHReferences);
+        if(wikipediaReference != null) resultList.add(wikipediaReference);
         
         return resultList;
     }
@@ -126,6 +133,7 @@ public class ExternalReferencesExtractor {
         
         ArrayList<ExternalReference> infopediaReferences = getInfopediaReferences(concept.string);
         ArrayList<ExternalReference> medicoRespondeReferences = getMedicoRespondeReferences(concept.string);
+        ExternalReference wikipediaReference = getWikipediaReference(concept, "pt");
         
         String preferredTerm = getPreferredTermPortuguese(concept.CUI);
         if(preferredTerm != null && ! preferredTerm.equalsIgnoreCase(concept.string)){
@@ -136,16 +144,21 @@ public class ExternalReferencesExtractor {
             resultList.addAll(medicoRespondeReferencesPreferred);
         }
         
-        if(concept.CHVPreferred != null && ! concept.CHVPreferred.equalsIgnoreCase(concept.string) && ! concept.CHVPreferred.equalsIgnoreCase(preferredTerm)){
-            ArrayList<ExternalReference> infopediaReferencesLay = getInfopediaReferences(concept.CHVPreferred);
-            ArrayList<ExternalReference> medicoRespondeReferencesLay = getMedicoRespondeReferences(concept.CHVPreferred);
-            
-            resultList.addAll(infopediaReferencesLay);
-            resultList.addAll(medicoRespondeReferencesLay);
+        try{
+            if(concept.CHVPreferred != null && ! (Inflector.singularize(concept.CHVPreferred, "pt")).equalsIgnoreCase(Inflector.singularize(concept.string, "pt")) && ! (Inflector.singularize(concept.CHVPreferred, "pt")).equalsIgnoreCase(Inflector.singularize(preferredTerm, "pt"))){
+                ArrayList<ExternalReference> infopediaReferencesLay = getInfopediaReferences(concept.CHVPreferred);
+                ArrayList<ExternalReference> medicoRespondeReferencesLay = getMedicoRespondeReferences(concept.CHVPreferred);
+
+                resultList.addAll(infopediaReferencesLay);
+                resultList.addAll(medicoRespondeReferencesLay);
+            }
+        }catch(Exception ex){
+            logger.log(Level.SEVERE, null, ex);
         }
 
         resultList.addAll(infopediaReferences);
         resultList.addAll(medicoRespondeReferences);
+        if(wikipediaReference != null) resultList.add(wikipediaReference);
         
         return resultList;
     }
@@ -428,6 +441,40 @@ public class ExternalReferencesExtractor {
         }
         
         return result;
+    }
+    
+    private ExternalReference getWikipediaReference(Concept concept, String language){
+        PreparedStatement stmt;
+        
+        try {
+            conn.setCatalog("umls_" + language);
+        
+            String query = "select url from wikidef where cui = ?;";
+            stmt = conn.prepareStatement(query);
+
+            stmt.setString(1, concept.CUI);
+
+            ResultSet rs = stmt.executeQuery();
+
+            if(rs.next()){
+                String url = rs.getString("url");
+                String title = url.substring(url.lastIndexOf("/") + 1) ;
+                title = title.replace("_", " ");
+                title = java.net.URLDecoder.decode(title, "UTF-8");
+                
+                return new ExternalReference(url, title, "Wikipedia " + language.toUpperCase());
+            }
+        
+            stmt.close();
+            rs.close();
+            
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }catch (Exception ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
+        return null;
     }
 
 }
