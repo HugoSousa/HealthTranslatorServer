@@ -289,7 +289,7 @@ public class ExternalReferencesExtractor {
             JsonObject res = obj.getJsonObject("Result");
             String total = res.getString("Total");
                 
-            if(Integer.parseInt(total) > 0){
+            if(Integer.parseInt(total) > 0 && !res.isNull("Topics")){
                 
                 //if only 1 topic, return a JsonObject. Otherwise, returns JsonArray
                 try{
@@ -302,12 +302,16 @@ public class ExternalReferencesExtractor {
                         result.add(ref);
                     }
                 }catch(java.lang.ClassCastException ex){
-                    JsonObject topic = res.getJsonObject("Topics");
-                    
-                    String url = topic.getString("AccessibleVersion");
-                    String label = topic.getString("Title");
-                    ExternalReference ref = new ExternalReference(url, label, "Healthfinder");
-                    result.add(ref);
+                    try{
+                        JsonObject topic = res.getJsonObject("Topics");
+
+                        String url = topic.getString("AccessibleVersion");
+                        String label = topic.getString("Title");
+                        ExternalReference ref = new ExternalReference(url, label, "Healthfinder");
+                        result.add(ref);
+                    }catch(java.lang.ClassCastException ex2){
+                        //no topic
+                    }
                 }
 
                 

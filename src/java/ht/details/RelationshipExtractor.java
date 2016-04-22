@@ -49,7 +49,7 @@ public class RelationshipExtractor {
                             "JOIN mrconso con ON rel.aui1 = con.aui " +
                             "JOIN mrconso con2 ON rel.aui2 = con2.aui " +
                             "JOIN mrsty s ON con2.cui = s.cui " +
-                            "WHERE rel.cui1 = ? " +
+                            "WHERE rel.cui2 = ? " +
                             "AND rel.cui1 <> rel.cui2 " +
                             "AND ( rela IS NULL OR " +
                             "rela IN (";
