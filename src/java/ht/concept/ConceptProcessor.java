@@ -9,13 +9,11 @@ import ht.details.ExternalReference;
 import ht.details.Relationship;
 import ht.utils.LoggerFactory;
 import ht.details.RelationshipExtractor;
-import ht.utils.ServletContextClass;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import static java.util.Arrays.asList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +32,8 @@ import org.apache.http.impl.client.HttpClients;
  * @author Hugo
  */
 public abstract class ConceptProcessor {
+    
+    protected Connection conn;
     
     protected ConcurrentHashMap<String, String> stopwords;
     public Tokenizer tokenizer; 
@@ -54,16 +54,18 @@ public abstract class ConceptProcessor {
     /**
      *
      */
-    public ConceptProcessor(){
+    public ConceptProcessor(Connection conn){
         Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
         punctuationMatcher = punctuationPattern.matcher("");
         numberMatcher = numberPattern.matcher("");
         
         logger = LoggerFactory.createLogger(ConceptProcessor.class.getName());
+        
+        this.conn = conn;
     }
 
-    public ConceptProcessor(ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
+    public ConceptProcessor(Connection conn, ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
         Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
         punctuationMatcher = punctuationPattern.matcher("");
@@ -71,6 +73,7 @@ public abstract class ConceptProcessor {
         
         logger = LoggerFactory.createLogger(ConceptProcessor.class.getName());
         
+        this.conn = conn;
         this.stopwords = stopwords;
         this.tokenizer = tokenizer;
         this.acceptedSemanticTypes = acceptedSemanticTypes;
@@ -269,7 +272,7 @@ public abstract class ConceptProcessor {
         rules.put("finding_site_of", null);
         rules.put("has_causative_agent", null);
         rules.put("has_causative_agent", null);
-        rels = RelationshipExtractor.extract(rules, cui, code);
+        rels = new RelationshipExtractor(conn).extract(rules, cui, code);
         /*
         switch(sty.toUpperCase()){
             case "T047":
@@ -301,15 +304,15 @@ public abstract class ConceptProcessor {
     
     public boolean hasRating(String tuid, String cui){
         
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+        //Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
         
         String database = "umls_" + code;
         try {
-            connMySQL.setCatalog(database);
+            conn.setCatalog(database);
             
             String query = "SELECT * FROM rating WHERE tuid = ? AND cui = ?;";
-            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
             stmt.setString(1, tuid);
             stmt.setString(2, cui);
@@ -318,6 +321,9 @@ public abstract class ConceptProcessor {
             if(! rs.next()){
                 return false;
             }
+            
+            stmt.close();
+            rs.close();   
             
         } catch (SQLException ex) {
             logger.log(Level.SEVERE, null, ex);

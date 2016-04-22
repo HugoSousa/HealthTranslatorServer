@@ -10,25 +10,31 @@ import ht.concept.Concept;
 import ht.concept.EnglishProcessor;
 import ht.concept.PortugueseProcessor;
 import ht.concept.SemanticType;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import javax.ejb.Singleton;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.servlet.ServletContext;
+import javax.sql.DataSource;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 
 /**
  *
  * @author Hugo
  */
 @Path("details")
-@Singleton
 public class ConceptDetails {
     
-    private final EnglishProcessor englishProcessor = new EnglishProcessor();
-    private final PortugueseProcessor portugueseProcessor = new PortugueseProcessor();
+    @Context
+    ServletContext servletContext;
+    
     
     public ConceptDetails() {}
     
@@ -36,6 +42,15 @@ public class ConceptDetails {
     @Produces("application/json")
     @Consumes("application/json")
     public ConceptDetailsResult test(ConceptDetailsParams param) {
+        
+        //Connection connection = (Connection)servletContext.getAttribute("connectionDB");
+        Connection connection;
+        try {
+            connection = ((DataSource)servletContext.getAttribute("connPool")).getConnection();
+        } catch (SQLException ex) {
+            Logger.getLogger(ConceptDetails.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        }
         
         String cui = param.cui;
         String string = param.string;
@@ -48,19 +63,20 @@ public class ConceptDetails {
         ConceptProcessor processor;
         switch (language) {
             case "en":
-                processor = englishProcessor;
+                processor = new EnglishProcessor(connection);
                 break;
             case "pt":
-                processor = portugueseProcessor;
+                processor = new PortugueseProcessor(connection);
                 break;
             default:
-                processor = englishProcessor;
+                processor = new EnglishProcessor(connection);
                 break;
         }
         
         ArrayList<ExternalReference> externalReferences = processor.getExternalReferences(concept);
         if(param.includeEnglishRefs){
-            externalReferences.addAll(ExternalReferencesExtractor.getEnglishExternalReferences(concept));
+            
+            externalReferences.addAll(new ExternalReferencesExtractor(connection).getEnglishExternalReferences(concept));
         }
         
         String definition = processor.getDefinition(concept);
@@ -80,6 +96,12 @@ public class ConceptDetails {
         boolean hasRating = processor.hasRating(param.tuid, concept.CUI);
         
         ConceptDetailsResult result = new ConceptDetailsResult(definition, externalReferences, stys, rels, hasRating);
+        
+        try {
+            connection.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(ConceptDetails.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
         return result;
     }    

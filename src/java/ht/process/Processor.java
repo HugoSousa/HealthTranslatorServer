@@ -14,34 +14,28 @@ import com.cybozu.labs.langdetect.Detector;
 import com.cybozu.labs.langdetect.DetectorFactory;
 import com.cybozu.labs.langdetect.LangDetectException;
 import com.cybozu.labs.langdetect.Language;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLClassLoader;
+import ht.utils.Inflector;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
-import javax.ejb.Singleton;
 import javax.servlet.ServletContext;
+import javax.sql.DataSource;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.Produces;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import opennlp.tools.tokenize.Tokenizer;
-import opennlp.tools.tokenize.TokenizerME;
-import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.DataNode;
@@ -60,7 +54,6 @@ import rufus.lzstring4java.LZString;
  * @author Hugo
  */
 @Path("process")
-@Singleton
 public class Processor {
 
     @Context
@@ -84,17 +77,7 @@ public class Processor {
     
     private static Logger logger; 
     
-    private Tokenizer englishTokenizer;
-    private Tokenizer portugueseTokenizer;
-    
-    private ConcurrentHashMap<String, String> englishStopwords;
-    private ConcurrentHashMap<String, String> portugueseStopwords;
-    
-    //private final EnglishProcessor englishProcessor = new EnglishProcessor();
-    //private final PortugueseProcessor portugueseProcessor = new PortugueseProcessor();
-    
-    private ResourceBundle englishMessages;
-    private ResourceBundle portugueseMessages;
+
 
     /**
      * Creates a new instance of Processor
@@ -112,99 +95,8 @@ public class Processor {
 
         System.out.println("Processor preload");
         
-        //englishProcessor.setAcceptedSemanticTypes(semanticTypes);
-        //portugueseProcessor.setAcceptedSemanticTypes(semanticTypes);
-        
         logger = LoggerFactory.createLogger(Processor.class.getName());
         
-        InputStream is = null;
-        try {
-            is = servletContext.getResourceAsStream("/WEB-INF/models/en-token.bin");
-            TokenizerModel modelEN = new TokenizerModel(is);
-            englishTokenizer = new TokenizerME(modelEN);
-            //englishProcessor.setTokenizer(tokenizerEN);
-            is.close();
-
-            is = servletContext.getResourceAsStream("/WEB-INF/models/pt-token.bin");
-            TokenizerModel modelPT = new TokenizerModel(is);
-            portugueseTokenizer = new TokenizerME(modelPT);
-            //portugueseProcessor.setTokenizer(tokenizerPT);
-            is.close();
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-
-        is = servletContext.getResourceAsStream("/WEB-INF/stopwords/stopwords_en.txt");
-        ConcurrentHashMap<String, String> stopwordsEN = new ConcurrentHashMap<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                //System.out.println("line: " + line);
-                if (!line.isEmpty() && Character.isLetter(line.charAt(0))) {
-                    int index = line.indexOf(' ');
-
-                    if (index == -1) {
-                        index = line.length();
-                    }
-
-                    //System.out.println("index: " + index);
-                    stopwordsEN.put(line.substring(0, index), "");
-                }
-            }
-            englishStopwords = stopwordsEN;
-            //englishProcessor.setStopwords(stopwordsEN);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-
-        is = servletContext.getResourceAsStream("/WEB-INF/stopwords/stopwords_pt.txt");
-        ConcurrentHashMap<String, String> stopwordsPT = new ConcurrentHashMap<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                //System.out.println("line: " + line);
-                if (!line.isEmpty() && Character.isLetter(line.charAt(0))) {
-                    int index = line.indexOf(' ');
-
-                    if (index == -1) {
-                        index = line.length();
-                    }
-
-                    //System.out.println("index: " + index);
-                    stopwordsPT.put(line.substring(0, index), "");
-                }
-            }
-
-            portugueseStopwords = stopwordsPT;
-            //portugueseProcessor.setStopwords(stopwordsEN);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-
-        try {
-            long startTime = System.nanoTime();
-            String directory = servletContext.getRealPath("/") + "/WEB-INF/language-profiles/";
-            DetectorFactory.loadProfile(directory);
-            long endTime = System.nanoTime();
-            long duration = (endTime - startTime) / 1000000;
-            System.out.println("LOAD PROFILES: " + duration + " ms");
-        } catch (LangDetectException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-        
-        try{
-            
-            Locale localeEN = new Locale("en");
-            Locale localePT = new Locale("pt");
-            URL[] urls = {servletContext.getResource("/WEB-INF/i18n/")};
-            ClassLoader loader = new URLClassLoader(urls);
-            
-            englishMessages = ResourceBundle.getBundle("MessagesBundle", localeEN, loader);
-            portugueseMessages = ResourceBundle.getBundle("MessagesBundle", localePT, loader);
-            
-        }catch(Exception e){
-            logger.log(Level.SEVERE, null, e);
-        }
     }
 
     /**
@@ -217,12 +109,11 @@ public class Processor {
     @Produces("application/json")
     @Consumes("application/json")
     public ProcessorResult test(ProcessorParams param) {
-        
+
         System.out.println(param);
         if(param.supportedLanguages.isEmpty())
             param.setDefaultSupportedLanguages();
-        
-        
+
         System.out.println("Starting Processing");
         SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss.SSS");
         Date date = new Date();
@@ -241,12 +132,21 @@ public class Processor {
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("DURATION: " + duration + " ms");
-        
-        return result;
+      
+       return result;     
     }
 
-    public ProcessorResult processDocumentV2(ProcessorParams param) {
+    public ProcessorResult processDocumentV2(ProcessorParams param){
 
+        Tokenizer englishTokenizer = (Tokenizer)servletContext.getAttribute("englishTokenizer");
+        Tokenizer portugueseTokenizer  = (Tokenizer)servletContext.getAttribute("portugueseTokenizer");
+    
+        ConcurrentHashMap<String, String> englishStopwords = (ConcurrentHashMap<String, String>)servletContext.getAttribute("englishStopwords");
+        ConcurrentHashMap<String, String> portugueseStopwords = (ConcurrentHashMap<String, String>)servletContext.getAttribute("portugueseStopwords");
+
+        ResourceBundle englishMessages = (ResourceBundle)servletContext.getAttribute("englishMessages");
+        ResourceBundle portugueseMessages = (ResourceBundle)servletContext.getAttribute("portugueseMessages");
+        
         //System.out.println("CONTENT: " + content);
         String content = param.body;
         
@@ -264,21 +164,29 @@ public class Processor {
         
         ConceptProcessor processor;
         ResourceBundle messages;
-        
+
+        Connection connection;
+        try {
+            connection = ((DataSource)servletContext.getAttribute("connPool")).getConnection();
+        } catch (SQLException ex) {
+            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        }
+       
         if(! param.supportedLanguages.contains(language))
             return new ProcessorResult("This language is not supported");
         
         switch (language) {
             case "en":
-                processor = new EnglishProcessor(englishStopwords, englishTokenizer, semanticTypes);
+                processor = new EnglishProcessor(connection, englishStopwords, englishTokenizer, semanticTypes);
                 //messages = englishMessages;
                 break;
             case "pt":
-                processor = new PortugueseProcessor(portugueseStopwords, portugueseTokenizer, semanticTypes);
+                processor = new PortugueseProcessor(connection, portugueseStopwords, portugueseTokenizer, semanticTypes);
                 //messages = portugueseMessages;
                 break;
             default:
-                processor = new EnglishProcessor(englishStopwords, englishTokenizer, semanticTypes);
+                processor = new EnglishProcessor(connection, englishStopwords, englishTokenizer, semanticTypes);
                 //messages = englishMessages;
                 break;
         }
@@ -413,13 +321,27 @@ public class Processor {
         long duration = (endTime - startTime)/1000000;// / 1000000;
         //System.out.println("BODY: " + doc.body().toString());
         ProcessorResult result = new ProcessorResult(doc.body().toString(), conceptCounter, duration, language);
+        
+        try {
+            connection.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         return result;
     }
 
     private String replaceConcept(Concept bestMatch, String language, ResourceBundle messages) {
         
-        boolean hasDifferentCHV = bestMatch.CHVPreferred != null && ! bestMatch.string.equalsIgnoreCase(bestMatch.CHVPreferred);
-        boolean hasDifferentUMLS = bestMatch.UMLSPreferred != null && ! bestMatch.string.equalsIgnoreCase(bestMatch.UMLSPreferred);
+        boolean hasDifferentCHV = false;
+        boolean hasDifferentUMLS = false;
+        try {
+            hasDifferentCHV = bestMatch.CHVPreferred != null && ! Inflector.singularize(bestMatch.string, language).equalsIgnoreCase(Inflector.singularize(bestMatch.CHVPreferred, language));
+            hasDifferentUMLS = bestMatch.UMLSPreferred != null && ! Inflector.singularize(bestMatch.string, language).equalsIgnoreCase(Inflector.singularize(bestMatch.UMLSPreferred, language));
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
+        
         String preferred = "";
         String definition = "";
         

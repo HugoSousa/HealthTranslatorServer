@@ -17,7 +17,7 @@ import java.util.logging.SimpleFormatter;
  *
  * @author Hugo
  */
-public class LoggerFactory {
+public abstract class LoggerFactory {
     
     public static Logger createLogger(String className){
         

@@ -6,7 +6,7 @@
 package ht.details;
 
 import ht.concept.Concept;
-import ht.utils.ServletContextClass;
+import ht.utils.LoggerFactory;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URLEncoder;
@@ -39,10 +39,16 @@ import org.jsoup.select.Elements;
  */
 public class ExternalReferencesExtractor {
     
-    private final static CloseableHttpClient httpclient = HttpClients.createDefault();
-    private final static Logger logger = Logger.getLogger(ExternalReferencesExtractor.class.getName());
+    private final CloseableHttpClient httpclient = HttpClients.createDefault();
+    private final Logger logger;
+    private final Connection conn;
     
-    public static ArrayList<ExternalReference> getEnglishExternalReferences(Concept concept) {
+    public ExternalReferencesExtractor(Connection conn){
+        this.conn = conn;
+        logger = LoggerFactory.createLogger(ExternalReferencesExtractor.class.getName());
+    }
+    
+    public ArrayList<ExternalReference> getEnglishExternalReferences(Concept concept) {
         
         ArrayList<ExternalReference> resultList = new ArrayList<>();
         
@@ -84,15 +90,15 @@ public class ExternalReferencesExtractor {
         return resultList;
     }
     
-    private static String getPreferredTermEnglish(String cui){
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+    private String getPreferredTermEnglish(String cui){
+        //Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
         
         try {
-            connMySQL.setCatalog("umls_en");
+            conn.setCatalog("umls_en");
         
             String query = "select * from MRCONSO WHERE cui = ? AND ts = 'P' AND stt = 'PF' AND ispref = 'Y' AND lat = 'ENG';";
-            stmt = connMySQL.prepareStatement(query);
+            stmt = conn.prepareStatement(query);
 
             stmt.setString(1, cui);
 
@@ -101,6 +107,9 @@ public class ExternalReferencesExtractor {
             if(rs.next()){
                 return rs.getString("STR");
             }
+        
+            stmt.close();
+            rs.close();
             
         } catch (SQLException ex) {
             logger.log(Level.SEVERE, null, ex);
@@ -111,7 +120,7 @@ public class ExternalReferencesExtractor {
         return null;
     }
     
-    public static ArrayList<ExternalReference> getPortugueseExternalReferences(Concept concept) {
+    public ArrayList<ExternalReference> getPortugueseExternalReferences(Concept concept) {
         
         ArrayList<ExternalReference> resultList = new ArrayList<>();
         
@@ -141,15 +150,15 @@ public class ExternalReferencesExtractor {
         return resultList;
     }
     
-        private static String getPreferredTermPortuguese(String cui){
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+    private String getPreferredTermPortuguese(String cui){
+        //Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
         
         try {
-            connMySQL.setCatalog("umls_en");
+            conn.setCatalog("umls_en");
         
             String query = "select * from MRCONSO WHERE cui = ? AND ts = 'P' AND stt = 'PF' AND ispref = 'Y' AND lat = 'POR';";
-            stmt = connMySQL.prepareStatement(query);
+            stmt = conn.prepareStatement(query);
 
             stmt.setString(1, cui);
 
@@ -158,6 +167,9 @@ public class ExternalReferencesExtractor {
             if(rs.next()){
                 return rs.getString("STR");
             }
+            
+            stmt.close();
+            rs.close();  
             
         } catch (SQLException ex) {
             logger.log(Level.SEVERE, null, ex);
@@ -169,16 +181,16 @@ public class ExternalReferencesExtractor {
     }
     
     
-    private static String getSNOMEDCode(Concept concept){
+    private String getSNOMEDCode(Concept concept){
         
         String SNOMEDCode = null;
         
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+        //Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
         
         try{
-            connMySQL.setCatalog("umls_en");
-            stmt = connMySQL.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'SNOMEDCT_US';", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            conn.setCatalog("umls_en");
+            stmt = conn.prepareStatement("SELECT * FROM MRCONSO WHERE CUI = ? AND SAB = 'SNOMEDCT_US';", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             stmt.setString(1, concept.CUI);
             ResultSet rs = stmt.executeQuery();
             
@@ -186,6 +198,10 @@ public class ExternalReferencesExtractor {
                 if(SNOMEDCode == null || (SNOMEDCode != null && rs.getString("TTY").equals("PT")))
                     SNOMEDCode = rs.getString("SCUI");
             }
+            
+            stmt.close();
+            rs.close();
+            
         }catch (SQLException ex) {
             //logger.log(Level.SEVERE, null, ex);
         }
@@ -193,7 +209,7 @@ public class ExternalReferencesExtractor {
         return SNOMEDCode;
     }
     
-    private static ArrayList<ExternalReference> getMedlinePlusReferences(String SNOMEDCode){
+    private ArrayList<ExternalReference> getMedlinePlusReferences(String SNOMEDCode){
         
         ArrayList<ExternalReference> result = new ArrayList<>();
         
@@ -238,7 +254,7 @@ public class ExternalReferencesExtractor {
         return result;
     }   
     
-    private static ArrayList<ExternalReference> getHealthFinderReferences(String concept){
+    private ArrayList<ExternalReference> getHealthFinderReferences(String concept){
         
         ArrayList<ExternalReference> result = new ArrayList<>();
         
@@ -297,7 +313,7 @@ public class ExternalReferencesExtractor {
         return result;
     }
     
-    private static ArrayList<ExternalReference> getMayoClinicReferences(String concept){
+    private ArrayList<ExternalReference> getMayoClinicReferences(String concept){
         
         ArrayList<ExternalReference> result = new ArrayList<> ();
         
@@ -333,7 +349,7 @@ public class ExternalReferencesExtractor {
         return result;
     }
     
-    private static ArrayList<ExternalReference> getNIHReferences(String concept){
+    private ArrayList<ExternalReference> getNIHReferences(String concept){
                 
         ArrayList<ExternalReference> result = new ArrayList<> ();
         
@@ -362,7 +378,7 @@ public class ExternalReferencesExtractor {
     }
     
     
-    private static ArrayList<ExternalReference> getInfopediaReferences(String concept){
+    private ArrayList<ExternalReference> getInfopediaReferences(String concept){
         
         ArrayList<ExternalReference> result = new ArrayList<> ();
         
@@ -387,7 +403,7 @@ public class ExternalReferencesExtractor {
         return result;
     }
     
-    private static ArrayList<ExternalReference> getMedicoRespondeReferences(String concept){
+    private ArrayList<ExternalReference> getMedicoRespondeReferences(String concept){
         
         String originalConcept = concept;
         ArrayList<ExternalReference> result = new ArrayList<> ();

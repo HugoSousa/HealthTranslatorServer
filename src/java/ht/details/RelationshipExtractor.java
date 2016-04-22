@@ -6,7 +6,6 @@
 package ht.details;
 
 import ht.utils.LoggerFactory;
-import ht.utils.ServletContextClass;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,15 +21,24 @@ import java.util.logging.Logger;
  * @author Hugo
  */
 public class RelationshipExtractor {
-    public static HashMap<String, HashSet<Relationship>> extract(HashMap<String, List<String>> relationshipRules, String cui, String langCode){
+    
+    private Connection conn;
+    private final Logger logger;
+    
+    public RelationshipExtractor(Connection conn){
+        this.conn = conn;
+        logger = LoggerFactory.createLogger(RelationshipExtractor.class.getName());
+    }
+    
+    public HashMap<String, HashSet<Relationship>> extract(HashMap<String, List<String>> relationshipRules, String cui, String langCode){
         HashMap<String, HashSet<Relationship>> result = new HashMap<>();
         
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+        //Connection connMySQL = ServletContextClass.conn;
         PreparedStatement stmt;
         
         String database = "umls_" + langCode;
         try {
-            connMySQL.setCatalog(database);
+            conn.setCatalog(database);
             
             String[] relList = new String[relationshipRules.keySet().size()];
             relationshipRules.keySet().toArray(relList);
@@ -53,7 +61,7 @@ public class RelationshipExtractor {
             sb.append("))");
             query = sb.toString();
 
-            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             
             stmt.setString(1, cui);
             for(int i = 0; i < relList.length; i++){
@@ -84,15 +92,16 @@ public class RelationshipExtractor {
                 }
             }
             
+            stmt.close();
+            rs.close();    
         } catch (SQLException ex) {
-            Logger logger = LoggerFactory.createLogger(RelationshipExtractor.class.getName());
             logger.log(Level.SEVERE, null, ex);
         }
         
         return result;
     }
     
-    private static void addRelationshipToResult(HashMap<String, HashSet<Relationship>> result, String rela, Relationship rel) {
+    private void addRelationshipToResult(HashMap<String, HashSet<Relationship>> result, String rela, Relationship rel) {
         
         if( ! result.containsKey(rela)){
             HashSet<Relationship> rels = new HashSet<>();

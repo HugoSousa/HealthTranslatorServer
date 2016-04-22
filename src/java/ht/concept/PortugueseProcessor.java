@@ -8,7 +8,6 @@ package ht.concept;
 import ht.utils.LoggerFactory;
 import ht.details.ExternalReference;
 import ht.details.ExternalReferencesExtractor;
-import ht.utils.ServletContextClass;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,15 +29,15 @@ public class PortugueseProcessor extends ConceptProcessor {
     
     private static Logger logger;
     
-    public PortugueseProcessor() {
-        super();
+    public PortugueseProcessor(Connection conn) {
+        super(conn);
         code = "pt";
         
         logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
     }
     
-    public PortugueseProcessor(ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
-        super(stopwords, tokenizer, acceptedSemanticTypes);
+    public PortugueseProcessor(Connection conn, ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
+        super(conn, stopwords, tokenizer, acceptedSemanticTypes);
         code = "pt";
         
         logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
@@ -100,11 +99,11 @@ public class PortugueseProcessor extends ConceptProcessor {
                 break;
             }
 
-            Connection connMySQL = ServletContextClass.conn_MySQL;
+            //Connection connMySQL = ServletContextClass.conn_MySQL;
             PreparedStatement stmt;
 
             try {
-                connMySQL.setCatalog("umls_pt");
+                conn.setCatalog("umls_pt");
 
                 String query = "select c.CUI, STR, SAB, TTY, null as chv_pref_pt, null AS umls_pref_pt, tui "
                         + "from MRCONSO c, MRSTY s "
@@ -115,7 +114,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                         + "from chvstring s join chvconcept c on s.cui = c.cui "
                         + "WHERE pt = ?;";
                 
-                stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                stmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
                 stmt.setString(1, singularQueryToken);
                 stmt.setString(2, singularQueryToken);
@@ -174,7 +173,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                             tuis.add(rs.getString("tui"));
                         }
                         
-                        stmt = connMySQL.prepareStatement("select * from MRCONSO c WHERE c.ts = 'P' AND c.stt = 'PF' AND c.ispref = 'Y' AND c.lat = 'POR' AND c.cui = ?;");
+                        stmt = conn.prepareStatement("select * from MRCONSO c WHERE c.ts = 'P' AND c.stt = 'PF' AND c.ispref = 'Y' AND c.lat = 'POR' AND c.cui = ?;");
                         stmt.setString(1, CUI);
                         rs = stmt.executeQuery();
                         if (rs.next()) {
@@ -225,14 +224,14 @@ public class PortugueseProcessor extends ConceptProcessor {
         
         String definition = null;
         
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+        //Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
                 
         try {
-            connMySQL.setCatalog("umls_pt");
+            conn.setCatalog("umls_pt");
             
             String query = "SELECT DEF FROM wikidef WHERE CUI = ?;";
-            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
             stmt.setString(1, concept.CUI);
 
@@ -242,6 +241,8 @@ public class PortugueseProcessor extends ConceptProcessor {
                 definition = rs.getString("DEF");
             }
             
+            stmt.close();
+            rs.close();   
         } catch (SQLException ex) {
             Logger.getLogger(ConceptProcessor.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -255,7 +256,7 @@ public class PortugueseProcessor extends ConceptProcessor {
     
     @Override
     public ArrayList<ExternalReference> getExternalReferences(Concept concept) {
-        return ExternalReferencesExtractor.getPortugueseExternalReferences(concept);   
+        return new ExternalReferencesExtractor(conn).getPortugueseExternalReferences(concept);   
     }
     
     @Override
@@ -263,15 +264,15 @@ public class PortugueseProcessor extends ConceptProcessor {
         
         ArrayList<SemanticType> stys = new ArrayList<>();
         
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+        //Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
         
         String database = "umls_" + code;
         try {
-            connMySQL.setCatalog(database);
+            conn.setCatalog(database);
             
             String query = "SELECT * FROM mrsty WHERE CUI = ?;";
-            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
             stmt.setString(1, cui);
 
@@ -287,7 +288,7 @@ public class PortugueseProcessor extends ConceptProcessor {
             
             //only in CHV
             query = "SELECT * FROM chvconcept c WHERE c.CUI = ?;";
-            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
             stmt.setString(1, cui);
             rs = stmt.executeQuery();
@@ -312,6 +313,8 @@ public class PortugueseProcessor extends ConceptProcessor {
                 }
             }
             
+            stmt.close();
+            rs.close();    
         } catch (SQLException ex) {
             logger.log(Level.SEVERE, null, ex);
         }
@@ -321,20 +324,23 @@ public class PortugueseProcessor extends ConceptProcessor {
     
     private String getSemanticTypeString(String tui){
         
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+        //Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
         String str = null;
         
         String database = "umls_" + code;
         try {
-            connMySQL.setCatalog(database);
+            conn.setCatalog(database);
         
             String query = "SELECT sty FROM mrsty WHERE tui = ? LIMIT 1";
-            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             stmt.setString(1, tui);
             ResultSet rs = stmt.executeQuery();
             rs.next();
             str = rs.getString("sty");
+        
+            stmt.close();
+            rs.close();
             
         } catch (SQLException ex) {
             logger.log(Level.SEVERE, null, ex);
@@ -345,15 +351,15 @@ public class PortugueseProcessor extends ConceptProcessor {
     
     @Override
     public String conceptExists(String concept){
-        Connection connMySQL = ServletContextClass.conn_MySQL;
+        //Connection connMySQL = ServletContextClass.conn_MySQL;
         PreparedStatement stmt;
 
         try {
-            connMySQL.setCatalog("umls_pt");
+            conn.setCatalog("umls_pt");
 
             String query = "select STR, CUI from MRCONSO WHERE STR = ? UNION ALL select pt, cui from chvstring WHERE pt = ?;";
 
-            stmt = connMySQL.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            stmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
             stmt.setString(1, concept);
             stmt.setString(2, concept);
@@ -362,12 +368,15 @@ public class PortugueseProcessor extends ConceptProcessor {
 
             rs.last();
             int total = rs.getRow();
+            rs.beforeFirst();
             
             if (total > 0){
                 rs.next();
                 return rs.getString("CUI");
             }
             
+            stmt.close();
+            rs.close();    
         } catch (SQLException ex) {
             logger.log(Level.SEVERE, null, ex);
         }
