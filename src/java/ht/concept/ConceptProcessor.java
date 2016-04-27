@@ -261,17 +261,35 @@ public abstract class ConceptProcessor {
     
     public HashMap<String, HashSet<Relationship>> getRelationships(String sty, String cui){
         
+        //relationships that don't point to metadata, interesting/understandable by health consumers, and not too broad 
+        
         HashMap<String, List<String>> rules = new HashMap<>();
         HashMap<String, HashSet<Relationship>> rels;
-        rules.put("empty", null);
+        //rules.put("empty", null);
         rules.put("same_as", null);
         rules.put("due_to", null);
         rules.put("cause_of", null);
         rules.put("inverse_isa", null);
         rules.put("isa", null);
+        rules.put("has_finding_site", null);
         rules.put("finding_site_of", null);
         rules.put("has_causative_agent", null);
-        rules.put("has_causative_agent", null);
+        rules.put("causative_agent_of", null);
+        rules.put("has_part", null);
+        rules.put("part_of", null);
+        rules.put("has_associated_morphology", null);
+        rules.put("associated_morphology_of", null);
+        rules.put("uses", null);
+        rules.put("used_by", null);
+        rules.put("has_active_ingredient", null);
+        rules.put("active_ingredient_of", null);
+        rules.put("occurs_before", null);
+        rules.put("occurs_after", null);
+        rules.put("occurs_in", null);
+        
+        rules.put("uses_device", null);
+        rules.put("device_used_by", null);
+        rules.put("has_location", null);
         rels = new RelationshipExtractor(conn).extract(rules, cui, code);
         /*
         switch(sty.toUpperCase()){
