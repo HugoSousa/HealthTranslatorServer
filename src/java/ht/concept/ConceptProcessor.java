@@ -51,9 +51,6 @@ public abstract class ConceptProcessor {
     
     private static Logger logger;
     
-    /**
-     *
-     */
     public ConceptProcessor(Connection conn){
         Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
@@ -265,7 +262,7 @@ public abstract class ConceptProcessor {
         
         HashMap<String, List<String>> rules = new HashMap<>();
         HashMap<String, HashSet<Relationship>> rels;
-        //rules.put("empty", null);
+        rules.put("empty", null);
         rules.put("same_as", null);
         rules.put("due_to", null);
         rules.put("cause_of", null);
@@ -285,8 +282,7 @@ public abstract class ConceptProcessor {
         rules.put("active_ingredient_of", null);
         rules.put("occurs_before", null);
         rules.put("occurs_after", null);
-        rules.put("occurs_in", null);
-        
+        rules.put("occurs_in", null);    
         rules.put("uses_device", null);
         rules.put("device_used_by", null);
         rules.put("has_location", null);
