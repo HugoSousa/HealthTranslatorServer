@@ -64,7 +64,7 @@ public class Processor {
     ServletContext servletContext;
 
     //private final ConcurrentHashMap<String, String> stopwordsEN = new ConcurrentHashMap<>();
-    private final HashSet<String> defaultSemanticTypes = new HashSet<>(Arrays.asList("T005", "T007", "T023", "T029", "T030", "T034", "T037", "T040", "T046", "T047", "T048", "T059", "T060", "T061", "T116", "T121", "T125", "T126", "T127", "T129", "T130", "T131", "T184", "T192", "T195", "T200"));
+    private final HashSet<String> defaultSemanticTypes = new HashSet<>(Arrays.asList("T005", "T007", "T019", "T020", "T023", "T029", "T030", "T033", "T037", "T046", "T047", "T048", "T059", "T060", "T061", "T109", "T116", "T121", "T125", "T126", "T127", "T129", "T130", "T131", "T184", "T190", "T194", "T195", "T200", "T204"));
 
     //private Matcher punctuationMatcher;
     //private Matcher numberMatcher;
