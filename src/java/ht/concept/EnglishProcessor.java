@@ -19,7 +19,7 @@ import opennlp.tools.util.Span;
 import ht.utils.Inflector;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import opennlp.tools.tokenize.Tokenizer;
+import opennlp.tools.tokenize.TokenizerModel;
 
 /**
  *
@@ -36,8 +36,8 @@ public class EnglishProcessor extends ConceptProcessor {
         logger = LoggerFactory.createLogger(EnglishProcessor.class.getName());
     }
     
-    public EnglishProcessor(Connection conn, ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
-        super(conn, stopwords, tokenizer, acceptedSemanticTypes);
+    public EnglishProcessor(Connection conn, ConcurrentHashMap<String, String> stopwords, TokenizerModel tokenizerModel, HashSet<String> acceptedSemanticTypes){
+        super(conn, stopwords, tokenizerModel, acceptedSemanticTypes);
         code = "en";
         
         logger = LoggerFactory.createLogger(EnglishProcessor.class.getName());
@@ -53,7 +53,8 @@ public class EnglishProcessor extends ConceptProcessor {
      */
     @Override
     public Concept processToken(Span[] spans, int i, String text, int forward_threshold) {
-
+           
+        
         String[] tokens = new String[forward_threshold];
         Span initialSpan = spans[i];
         Concept bestMatch = null;

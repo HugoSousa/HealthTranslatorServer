@@ -26,7 +26,7 @@ public abstract class LoggerFactory {
         //to find the log location
         //C:\Users\Hugo\AppData\Roaming\NetBeans\8.0.2\config\GF_4.1\domain1\config
         //String sRootPath = new File("").getAbsolutePath();
-        
+        /*
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat("M-d_HHmmss");
             FileHandler handler = new FileHandler(dateFormat.format(Calendar.getInstance().getTime()) + ".log");
@@ -39,7 +39,7 @@ public abstract class LoggerFactory {
         } catch (SecurityException ex) {
             logger.log(Level.SEVERE, null, ex);
         }
-        
+        */
         return logger;
     }
 }

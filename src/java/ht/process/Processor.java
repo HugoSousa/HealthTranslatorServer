@@ -15,6 +15,7 @@ import com.cybozu.labs.langdetect.DetectorFactory;
 import com.cybozu.labs.langdetect.LangDetectException;
 import com.cybozu.labs.langdetect.Language;
 import ht.utils.Inflector;
+import ht.utils.InvalidLanguageException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -28,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
+import javax.ejb.Stateless;
 import javax.servlet.ServletContext;
 import javax.sql.DataSource;
 import javax.ws.rs.Consumes;
@@ -36,6 +38,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import opennlp.tools.tokenize.Tokenizer;
+import opennlp.tools.tokenize.TokenizerME;
+import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.DataNode;
@@ -60,7 +64,7 @@ public class Processor {
     ServletContext servletContext;
 
     //private final ConcurrentHashMap<String, String> stopwordsEN = new ConcurrentHashMap<>();
-    private final HashSet<String> semanticTypes = new HashSet<>(Arrays.asList("T005", "T007", "T023", "T029", "T030", "T034", "T037", "T040", "T046", "T047", "T048", "T059", "T060", "T061", "T116", "T121", "T125", "T126", "T127", "T129", "T130", "T131", "T184", "T192", "T195", "T200"));
+    private final HashSet<String> defaultSemanticTypes = new HashSet<>(Arrays.asList("T005", "T007", "T023", "T029", "T030", "T034", "T037", "T040", "T046", "T047", "T048", "T059", "T060", "T061", "T116", "T121", "T125", "T126", "T127", "T129", "T130", "T131", "T184", "T192", "T195", "T200"));
 
     //private Matcher punctuationMatcher;
     //private Matcher numberMatcher;
@@ -77,15 +81,13 @@ public class Processor {
     
     private static Logger logger; 
     
-
-
     /**
      * Creates a new instance of Processor
      */
     public Processor() {
         System.out.println("Processor constructor");
     }
-    
+   
 
     /*
      * load stopwords, models, semantic types and logger into memory
@@ -108,7 +110,7 @@ public class Processor {
     @POST
     @Produces("application/json")
     @Consumes("application/json")
-    public ProcessorResult test(ProcessorParams param) {
+    public ProcessorResult2 process(ProcessorParams param) {
 
         System.out.println(param);
         if(param.supportedLanguages.isEmpty())
@@ -120,26 +122,143 @@ public class Processor {
         System.out.println(SDF.format(date));
 
         long startTimeX = System.nanoTime();
-        String decompressed = LZString.decompressFromUTF16(param.body);
-        long endTimeX = System.nanoTime();
-        long durationX = (endTimeX - startTimeX) / 1000000;
-        System.out.println("DURATION TO DECOMPRESS: " + durationX + " ms");
+        //String decompressed = LZString.decompressFromUTF16(param.body);
+        //long endTimeX = System.nanoTime();
+        //long durationX = (endTimeX - startTimeX) / 1000000;
+        //System.out.println("DURATION TO DECOMPRESS: " + durationX + " ms");
         //System.out.println("DECOMPRESSED: " + decompressed);
 
         long startTime = System.nanoTime();
-        param.body = decompressed;
-        ProcessorResult result = processDocumentV2(param);
+        //param.body = decompressed;
+        //ProcessorResult result = processDocumentV2(param);
+        ProcessorResult2 result = processDocumentV3(param);
+        
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
-        System.out.println("DURATION: " + duration + " ms");
+        System.out.println("DURATION: " + duration + " ms for " + param.body);
       
        return result;     
     }
+    
+    public ProcessorResult2 processDocumentV3(ProcessorParams param){
+        
+        TokenizerModel portugueseTokenizer  = (TokenizerModel)servletContext.getAttribute("portugueseTokenizer");
+        TokenizerModel englishTokenizer = (TokenizerModel)servletContext.getAttribute("englishTokenizer");
+    
+        ConcurrentHashMap<String, String> portugueseStopwords = (ConcurrentHashMap<String, String>)servletContext.getAttribute("portugueseStopwords");
+        ConcurrentHashMap<String, String> englishStopwords = (ConcurrentHashMap<String, String>)servletContext.getAttribute("englishStopwords");
+        
+        ResourceBundle portugueseMessages = (ResourceBundle)servletContext.getAttribute("portugueseMessages");
+        ResourceBundle englishMessages = (ResourceBundle)servletContext.getAttribute("englishMessages");
+        
+        String text = param.body;
+        //String text = LZString.decompressFromUTF16(param.body);
+        
+        Connection connection;
+        try {
+            connection = ((DataSource)servletContext.getAttribute("connPool")).getConnection();
+        } catch (SQLException ex) {
+            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        }
+                
+        HashSet<String> semanticTypes;
+        if(! param.semanticTypes.isEmpty())
+            semanticTypes = param.semanticTypes;
+        else
+            semanticTypes = defaultSemanticTypes;
+        
+        ConceptProcessor processor = null;
+        ResourceBundle messages = null;
+        
+        switch (param.language) {
+            case "en":
+                processor = new EnglishProcessor(connection, englishStopwords, englishTokenizer, semanticTypes);
+                //messages = englishMessages;
+                break;
+            case "pt":
+                processor = new PortugueseProcessor(connection, portugueseStopwords, portugueseTokenizer, semanticTypes);
+                //messages = portugueseMessages;
+                break;
+            default:
+                processor = new EnglishProcessor(connection, englishStopwords, englishTokenizer, semanticTypes);
+                //messages = englishMessages;
+                break;
+        }
+        
+        if((param.contentLanguage.equals("detected") && param.language.equals("en")) || param.contentLanguage.equals("en"))
+            messages = englishMessages;
+        else if((param.contentLanguage.equals("detected") && param.language.equals("pt")) || param.contentLanguage.equals("pt"))
+            messages = portugueseMessages;
+        else
+            messages = englishMessages;
+        
+        processor.recognizeOnlyCHV = param.recognizeOnlyCHV;
+        
+        if(param.styFilter.equals("all"))
+            processor.allAccepted = true;
+        else if(param.styFilter.equals("one"))
+            processor.allAccepted = false;
+        
+        if(text.equals("High blood pressure (hypertension)")){
+            int a = 1;
+        }
+        
+        Tokenizer tokenizer = new TokenizerME(processor.tokenizerModel);
+        
+        Span spans[] = tokenizer.tokenizePos(text);
+        //Span[] spansCopy = new Span[spans.length];
+        //System.arraycopy( spans, 0, spansCopy, 0, spans.length );
+        //System.out.println("TEXT: " + text);
+        //System.out.println("SPANS: " + spans.length);
 
+        ArrayList<Change> resultChanges = new ArrayList<>();
+        
+        for (int i = 0; i < spans.length; i++) {
+
+            Span initialSpan = spans[i];
+            
+            Concept bestMatch = processor.processToken(spans, i, text, FORWARD_THRESHOLD);
+
+            if(bestMatch != null){
+                //replace "'" so it doesn't break the tooltip html if the definition contains it
+                String definition = processor.getDefinition(bestMatch);
+                if(definition != null){
+                    bestMatch.setDefinition(definition);
+                }
+            }
+
+            if (bestMatch != null && ((! param.recognizeWithoutDefinition && bestMatch.definition != null) || param.recognizeWithoutDefinition) ) {
+                i += bestMatch.words - 1;
+                
+                /*
+                if (lastFound == null) {
+                    splitText.add(text.substring(0, initialSpan.getStart()));
+                } else {
+                    splitText.add(text.substring(lastFound.span.getEnd(), bestMatch.span.getStart()));
+                }
+                */
+                String definitionTooltip = replaceConcept(bestMatch, param.language, messages);
+                resultChanges.add(new Change(bestMatch.span.getStart(), bestMatch.span.getEnd(), definitionTooltip));
+                
+                //lastFound = bestMatch;
+                
+            }   
+        }
+        
+        try {
+            connection.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return new ProcessorResult2(resultChanges);
+    }
+/*
     public ProcessorResult processDocumentV2(ProcessorParams param){
 
-        Tokenizer englishTokenizer = (Tokenizer)servletContext.getAttribute("englishTokenizer");
-        Tokenizer portugueseTokenizer  = (Tokenizer)servletContext.getAttribute("portugueseTokenizer");
+        TokenizerModel englishTokenizer = (TokenizerModel)servletContext.getAttribute("englishTokenizer");
+        TokenizerModel portugueseTokenizer  = (TokenizerModel)servletContext.getAttribute("portugueseTokenizer");
     
         ConcurrentHashMap<String, String> englishStopwords = (ConcurrentHashMap<String, String>)servletContext.getAttribute("englishStopwords");
         ConcurrentHashMap<String, String> portugueseStopwords = (ConcurrentHashMap<String, String>)servletContext.getAttribute("portugueseStopwords");
@@ -176,6 +295,12 @@ public class Processor {
         if(! param.supportedLanguages.contains(language))
             return new ProcessorResult("This language is not supported");
         
+        HashSet<String> semanticTypes;
+        if(! param.semanticTypes.isEmpty())
+            semanticTypes = param.semanticTypes;
+        else
+            semanticTypes = defaultSemanticTypes;
+        
         switch (language) {
             case "en":
                 processor = new EnglishProcessor(connection, englishStopwords, englishTokenizer, semanticTypes);
@@ -210,7 +335,7 @@ public class Processor {
         for (Element element : elements) {
 
             //ignore scripts
-            if (element.tagName().equals("script") /*|| element.tagName().equals("noscript")*/) {
+            if (element.tagName().equals("script")) {
                 element.remove();
                 continue;
             }
@@ -236,8 +361,9 @@ public class Processor {
                         //System.out.println("NODE: TEXT");
 
                         String text = ((TextNode) node).getWholeText();
-
-                        Span spans[] = processor.tokenizer.tokenizePos(text);
+                        
+                        TokenizerME tokenizer = new TokenizerME(processor.tokenizerModel);
+                        Span spans[] = tokenizer.tokenizePos(text);
 
                         ArrayList<String> splitText = new ArrayList<>();
                         Concept lastFound = null;
@@ -284,12 +410,11 @@ public class Processor {
                         if (splitText.size() > 0) {
                             //replace textnode by text-element-text
 
-                            /*
-                             * with the current splitting method:
-                             * even chunks are text nodes
-                             * odd chunks are data nodes (new html created)
-                             * this way, as we are replacing by a single datanode, we need to escape the text parts
-                             */
+                            
+                            // with the current splitting method:
+                            // even chunks are text nodes
+                            // odd chunks are data nodes (new html created)
+                            // this way, as we are replacing by a single datanode, we need to escape the text parts
                             StringBuilder sb = new StringBuilder(text.length());
                             for (int i = 0; i < splitText.size(); i++) {
                                 String chunk = splitText.get(i);
@@ -328,13 +453,16 @@ public class Processor {
             Logger.getLogger(Processor.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        return result;
+        //return result;
+        return new ProcessorResult(param.body, 0, 1, "pt");
     }
+    */
 
     private String replaceConcept(Concept bestMatch, String language, ResourceBundle messages) {
         
         boolean hasDifferentCHV = false;
         boolean hasDifferentUMLS = false;
+
         try {
             hasDifferentCHV = bestMatch.CHVPreferred != null && ! Inflector.singularize(bestMatch.string, language).equalsIgnoreCase(Inflector.singularize(bestMatch.CHVPreferred, language));
             hasDifferentUMLS = bestMatch.UMLSPreferred != null && ! Inflector.singularize(bestMatch.string, language).equalsIgnoreCase(Inflector.singularize(bestMatch.UMLSPreferred, language));
@@ -353,18 +481,17 @@ public class Processor {
         }else if(hasDifferentUMLS){
             preferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.UMLSPreferred + "\" " + messages.getString("medical_terminology") + "</p>";
         }
-        
-        
-            
+
         if(bestMatch.definition != null){
             definition = "<p class=\"definition\">" + bestMatch.definition + "</p>";
         }else{
             definition = "<p>" + messages.getString("sorry") + "<br>" +  messages.getString("no_definition") + "</p>"; 
         }
         String tooltip = preferred + definition + "<a href=\"#\" data-toggle=\"modal\" data-target=\"#health-translator-modal\">" + messages.getString("more_info") + "</a>";
-        String newString = "<x-health-translator style='display:inline' class='health-translator'><x-health-translator class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</x-health-translator></x-health-translator>";
-
-        return newString;
+        //String newString = "<x-health-translator style='display:inline' class='health-translator'><x-health-translator class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</x-health-translator></x-health-translator>";
+        String tooltipString = "<x-health-translator class='medical-term-translate' data-toggle='tooltip' title='" + tooltip + "' data-html='true' data-lang=\"" + language + "\" data-cui=\"" + bestMatch.CUI + "\" data-term=\"" + bestMatch.string + "\">" + bestMatch.string + "</x-health-translator>";
+        
+        return tooltipString;
     }
 
     private String detectLanguage(Elements elements) {
@@ -418,9 +545,5 @@ public class Processor {
         } while (!successfulDetection && tries < MAX_RETRIES);
         
         return "en";
-    }
-    
-    protected boolean acceptedSemanticType(String sty) {
-        return semanticTypes.contains(sty);
     }
  }

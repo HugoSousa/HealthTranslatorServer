@@ -19,7 +19,7 @@ import opennlp.tools.util.Span;
 import ht.utils.Inflector;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import opennlp.tools.tokenize.Tokenizer;
+import opennlp.tools.tokenize.TokenizerModel;
 
 /**
  *
@@ -36,8 +36,8 @@ public class PortugueseProcessor extends ConceptProcessor {
         logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
     }
     
-    public PortugueseProcessor(Connection conn, ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
-        super(conn, stopwords, tokenizer, acceptedSemanticTypes);
+    public PortugueseProcessor(Connection conn, ConcurrentHashMap<String, String> stopwords, TokenizerModel tokenizerModel, HashSet<String> acceptedSemanticTypes){
+        super(conn, stopwords, tokenizerModel, acceptedSemanticTypes);
         code = "pt";
         
         logger = LoggerFactory.createLogger(PortugueseProcessor.class.getName());
@@ -67,7 +67,12 @@ public class PortugueseProcessor extends ConceptProcessor {
             }
 
             Span span = spans[initialIndex + j];
-            String token = text.substring(span.getStart(), span.getEnd());
+            String token = null;
+            try{
+                token = text.substring(span.getStart(), span.getEnd());
+            }catch(StringIndexOutOfBoundsException ex){
+                ex.printStackTrace();
+            }
             tokens[j] = token;
 
             String finalToken = "";
@@ -134,7 +139,6 @@ public class PortugueseProcessor extends ConceptProcessor {
                     String CHVPreferred = null;
                     String UMLSPreferred = null;
                     ArrayList<String> tuis = new ArrayList<>();
-                    int TUIPreferred = -1;
                     
                     if(allResultsFromCHV(rs)){
                         
@@ -182,6 +186,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                     }
                     
                     ArrayList<String> tuisCopy = new ArrayList<>(tuis);
+                    tuis.clear();
                     
                     for(String tui: tuisCopy){
                         String[] tuiList = tui.split(";");
@@ -191,8 +196,7 @@ public class PortugueseProcessor extends ConceptProcessor {
                         }
                     }
                     
-                    if( tuis.size() > 0 &&
-                        (TUIPreferred == -1 && isAcceptedSemanticType(tuis))){
+                    if( tuis.size() > 0 && isAcceptedSemanticType(tuis)){
                         bestMatch = new Concept(originalString, new Span(initialSpan.getStart(), span.getEnd()), j+1);
                         bestMatch.CUI = CUI;
                         bestMatch.setCHVPreferred(CHVPreferred);

@@ -22,7 +22,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import opennlp.tools.tokenize.Tokenizer;
+import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -34,9 +34,8 @@ import org.apache.http.impl.client.HttpClients;
 public abstract class ConceptProcessor {
     
     protected Connection conn;
-    
+    public TokenizerModel tokenizerModel;
     protected ConcurrentHashMap<String, String> stopwords;
-    public Tokenizer tokenizer; 
     protected HashSet<String> acceptedSemanticTypes;
     protected Matcher punctuationMatcher;
     protected Matcher numberMatcher;
@@ -62,37 +61,39 @@ public abstract class ConceptProcessor {
         this.conn = conn;
     }
 
-    public ConceptProcessor(Connection conn, ConcurrentHashMap<String, String> stopwords, Tokenizer tokenizer, HashSet<String> acceptedSemanticTypes){
+    public ConceptProcessor(Connection conn, ConcurrentHashMap<String, String> stopwords, TokenizerModel tokenizerModel, HashSet<String> acceptedSemanticTypes){
         Pattern punctuationPattern = Pattern.compile("\\p{Punct}", Pattern.CASE_INSENSITIVE);
         Pattern numberPattern = Pattern.compile("\\d+", Pattern.CASE_INSENSITIVE);
         punctuationMatcher = punctuationPattern.matcher("");
         numberMatcher = numberPattern.matcher("");
         
         logger = LoggerFactory.createLogger(ConceptProcessor.class.getName());
-        
+        this.tokenizerModel = tokenizerModel;
         this.conn = conn;
         this.stopwords = stopwords;
-        this.tokenizer = tokenizer;
         this.acceptedSemanticTypes = acceptedSemanticTypes;
     }
     
     public void setAcceptedSemanticTypes(HashSet<String> semanticTypes){
         this.acceptedSemanticTypes = semanticTypes;
     }
-    
-    public void setTokenizer(Tokenizer tokenizer){
-        this.tokenizer = tokenizer;
-    };
+
     
     public void setStopwords(ConcurrentHashMap<String, String> stopwords){
         this.stopwords = stopwords;
     }
     
     protected boolean isAcceptedSemanticType(ArrayList<String> tuis) {
+        
         for(String tui: tuis){
             if(acceptedSemanticTypes.contains(tui)){
                 if(! allAccepted)
                     return true;
+                else{
+                    tuis.remove(tui);
+                    if(tuis.isEmpty())
+                        return true;
+                }
             }else{
                 if(allAccepted)
                     return false;

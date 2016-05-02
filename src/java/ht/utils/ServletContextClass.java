@@ -80,13 +80,13 @@ public class ServletContextClass implements ServletContextListener{
         try {
             is = sce.getServletContext().getResourceAsStream("/WEB-INF/models/en-token.bin");
             TokenizerModel modelEN = new TokenizerModel(is);
-            context.setAttribute("englishTokenizer", new TokenizerME(modelEN));
+            context.setAttribute("englishTokenizer", modelEN);
             //englishProcessor.setTokenizer(tokenizerEN);
             is.close();
 
             is = sce.getServletContext().getResourceAsStream("/WEB-INF/models/pt-token.bin");
             TokenizerModel modelPT = new TokenizerModel(is);
-            context.setAttribute("portugueseTokenizer", new TokenizerME(modelPT));
+            context.setAttribute("portugueseTokenizer", modelPT);
             //portugueseProcessor.setTokenizer(tokenizerPT);
             is.close();
         } catch (IOException ex) {
