@@ -462,6 +462,11 @@ public class ExternalReferencesExtractor {
 
             if(rs.next()){
                 String url = rs.getString("url");
+                
+                if(url.contains("dbpedia")){
+                    url = url.replace("http://dbpedia.org/resource/", "http://" + language + ".wikipedia.org/wiki/");
+                }
+                
                 String title = url.substring(url.lastIndexOf("/") + 1) ;
                 title = title.replace("_", " ");
                 title = java.net.URLDecoder.decode(title, "UTF-8");
