@@ -19,11 +19,11 @@ public class ProcessorParams {
     @XmlElement public String body;
     
     @XmlElement public String language;
-    @XmlElement public String styFilter = "one";
-    @XmlElement public boolean recognizeOnlyCHV = true;
-    @XmlElement public boolean recognizeWithoutDefinition = true;
-    @XmlElement public ArrayList<String> supportedLanguages = new ArrayList<>();
-    @XmlElement public String contentLanguage = "detected";
+    @XmlElement public String styFilter;
+    @XmlElement public boolean recognizeOnlyCHV;
+    @XmlElement public boolean recognizeWithoutDefinition;
+    @XmlElement public ArrayList<String> supportedLanguages;
+    @XmlElement public String contentLanguage;
     @XmlElement public HashSet<String> semanticTypes = new HashSet<>(); //Arrays.asList("T005", "T007", "T023", "T029", "T030", "T034", "T037", "T040", "T046", "T047", "T048", "T059", "T060", "T061", "T116", "T121", "T125", "T126", "T127", "T129", "T130", "T131", "T184", "T192", "T195", "T200"));
     
     public ProcessorParams(){

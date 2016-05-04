@@ -84,14 +84,16 @@ public abstract class ConceptProcessor {
     }
     
     protected boolean isAcceptedSemanticType(ArrayList<String> tuis) {
+        ArrayList<String> copy = new ArrayList<>();
         
-        for(String tui: tuis){
+        for(int i = 0; i < tuis.size(); i++){
+            String tui = tuis.get(i);
             if(acceptedSemanticTypes.contains(tui)){
                 if(! allAccepted)
                     return true;
                 else{
-                    tuis.remove(tui);
-                    if(tuis.isEmpty())
+                    copy.add(tui);
+                    if(copy.size() == tuis.size())
                         return true;
                 }
             }else{

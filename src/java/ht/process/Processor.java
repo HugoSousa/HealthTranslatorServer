@@ -85,7 +85,7 @@ public class Processor {
      * Creates a new instance of Processor
      */
     public Processor() {
-        System.out.println("Processor constructor");
+        //System.out.println("Processor constructor");
     }
    
 
@@ -95,7 +95,7 @@ public class Processor {
     @PostConstruct
     public void preLoad() {
 
-        System.out.println("Processor preload");
+        //System.out.println("Processor preload");
         
         logger = LoggerFactory.createLogger(Processor.class.getName());
         
@@ -116,7 +116,7 @@ public class Processor {
         if(param.supportedLanguages.isEmpty())
             param.setDefaultSupportedLanguages();
 
-        System.out.println("Starting Processing");
+        //System.out.println("Starting Processing");
         SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss.SSS");
         Date date = new Date();
         System.out.println(SDF.format(date));
@@ -200,10 +200,6 @@ public class Processor {
         else if(param.styFilter.equals("one"))
             processor.allAccepted = false;
         
-        if(text.equals("High blood pressure (hypertension)")){
-            int a = 1;
-        }
-        
         Tokenizer tokenizer = new TokenizerME(processor.tokenizerModel);
         
         Span spans[] = tokenizer.tokenizePos(text);
@@ -219,8 +215,8 @@ public class Processor {
             Span initialSpan = spans[i];
             
             Concept bestMatch = processor.processToken(spans, i, text, FORWARD_THRESHOLD);
-
-            if(bestMatch != null){
+            
+            if(bestMatch != null){                
                 //replace "'" so it doesn't break the tooltip html if the definition contains it
                 String definition = processor.getDefinition(bestMatch);
                 if(definition != null){
@@ -481,8 +477,8 @@ public class Processor {
         }else if(hasDifferentUMLS){
             preferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.UMLSPreferred + "\" " + messages.getString("medical_terminology") + "</p>";
         }
-
-        if(bestMatch.definition != null){
+        
+        if(bestMatch.definition != null && ! bestMatch.definition.isEmpty()){
             definition = "<p class=\"definition\">" + bestMatch.definition + "</p>";
         }else{
             definition = "<p>" + messages.getString("sorry") + "<br>" +  messages.getString("no_definition") + "</p>"; 
