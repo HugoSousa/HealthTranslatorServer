@@ -471,7 +471,7 @@ public class Processor {
         
         if(hasDifferentCHV && hasDifferentUMLS)
         {
-            preferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" " + messages.getString("lay_terminology") + " " + messages.getString("or") + " \"" + " " + bestMatch.UMLSPreferred + "\" " + messages.getString("medical_terminology") + "</p>";
+            preferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" " + messages.getString("lay_terminology") + " " + messages.getString("or") + " \"" + bestMatch.UMLSPreferred + "\" " + messages.getString("medical_terminology") + "</p>";
         }else if(hasDifferentCHV){
             preferred = "<p>" + messages.getString("aka") + " \"" + bestMatch.CHVPreferred + "\" " + messages.getString("lay_terminology") + "</p>";
         }else if(hasDifferentUMLS){
