@@ -54,7 +54,6 @@ public class PortugueseProcessor extends ConceptProcessor {
     @Override
     public Concept processToken(Span[] spans, int i, String text, int forward_threshold) {
 
-        String[] tokens = new String[forward_threshold];
         Span initialSpan = spans[i];
         Concept bestMatch = null;
 
@@ -71,21 +70,10 @@ public class PortugueseProcessor extends ConceptProcessor {
             try{
                 token = text.substring(span.getStart(), span.getEnd());
             }catch(StringIndexOutOfBoundsException ex){
-                ex.printStackTrace();
+                logger.log(Level.SEVERE, null, ex);
             }
-            tokens[j] = token;
 
-            String finalToken = "";
-            if (j == 0) {
-                finalToken = token;
-            } else if (j > 0) {
-                for (int k = 0; k <= j; k++) {
-                    finalToken += tokens[k];
-                    if (k < j) {
-                        finalToken += " ";
-                    }
-                }
-            }
+            String finalToken = text.substring(initialSpan.getStart(), span.getEnd());
 
             String queryToken = finalToken.toLowerCase();
             String originalString = finalToken;

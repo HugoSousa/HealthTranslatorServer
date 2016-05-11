@@ -54,8 +54,6 @@ public class EnglishProcessor extends ConceptProcessor {
     @Override
     public Concept processToken(Span[] spans, int i, String text, int forward_threshold) {
            
-        
-        String[] tokens = new String[forward_threshold];
         Span initialSpan = spans[i];
         Concept bestMatch = null;
 
@@ -69,24 +67,9 @@ public class EnglishProcessor extends ConceptProcessor {
 
             Span span = spans[initialIndex + j];
             String token = text.substring(span.getStart(), span.getEnd());
-            tokens[j] = token;
             
-            String finalToken = "";
-            if (j == 0) {
-                finalToken = token;
-            } else if (j > 0) {
-                for (int k = 0; k <= j; k++) {
-                    //dont add a space if next token is "'s" <- incorrect tokenization
-                    if(tokens[k].equals("'s") && k > 0)
-                        finalToken = finalToken.substring(0,finalToken.length()-1);
-                    
-                    finalToken += tokens[k];
-                    if (k < j) {
-
-                        finalToken += " ";
-                    }
-                }
-            }
+            String finalToken = text.substring(initialSpan.getStart(), span.getEnd());
+            
             
             
             String queryToken = finalToken.toLowerCase();

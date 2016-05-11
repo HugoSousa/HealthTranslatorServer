@@ -70,7 +70,8 @@ public class Processor {
     //private Matcher numberMatcher;
     //private TokenizerModel modelEN;
     private final int FORWARD_THRESHOLD = 5;
-
+    
+    /*
     //number of text chunks bigger than THRESHOLD_TEXT_SIZE that are extracted for language detection
     private int THRESHOLD_TEXT_DETECTION = 3;
 
@@ -78,7 +79,7 @@ public class Processor {
     private int THRESHOLD_TEXT_SIZE = 100;
     
     private final int MAX_RETRIES = 3;
-    
+    */
     private static Logger logger; 
     
     /**
@@ -113,7 +114,7 @@ public class Processor {
     public ProcessorResult2 process(ProcessorParams param) {
 
         System.out.println(param);
-        if(param.supportedLanguages.isEmpty())
+        if(param.supportedLanguages == null || param.supportedLanguages.isEmpty())
             param.setDefaultSupportedLanguages();
 
         //System.out.println("Starting Processing");
@@ -163,10 +164,10 @@ public class Processor {
         }
                 
         HashSet<String> semanticTypes;
-        if(! param.semanticTypes.isEmpty())
-            semanticTypes = param.semanticTypes;
-        else
+        if(param.semanticTypes == null || param.semanticTypes.isEmpty())
             semanticTypes = defaultSemanticTypes;
+        else
+            semanticTypes = param.semanticTypes;    
         
         ConceptProcessor processor = null;
         ResourceBundle messages = null;
@@ -186,6 +187,9 @@ public class Processor {
                 break;
         }
         
+        if(param.contentLanguage == null)
+            param.contentLanguage = "detected";
+        
         if((param.contentLanguage.equals("detected") && param.language.equals("en")) || param.contentLanguage.equals("en"))
             messages = englishMessages;
         else if((param.contentLanguage.equals("detected") && param.language.equals("pt")) || param.contentLanguage.equals("pt"))
@@ -193,7 +197,16 @@ public class Processor {
         else
             messages = englishMessages;
         
+        if(param.recognizeOnlyCHV == null)
+            param.recognizeOnlyCHV = true;
+        
         processor.recognizeOnlyCHV = param.recognizeOnlyCHV;
+        
+        if(param.recognizeWithoutDefinition == null)
+            param.recognizeWithoutDefinition = true;
+        
+        if(param.styFilter == null)
+            param.styFilter = "all";
         
         if(param.styFilter.equals("all"))
             processor.allAccepted = true;
@@ -490,6 +503,7 @@ public class Processor {
         return tooltipString;
     }
 
+    /*
     private String detectLanguage(Elements elements) {
         //do a first iteration over elements (text) to detect language
         boolean successfulDetection;
@@ -542,4 +556,5 @@ public class Processor {
         
         return "en";
     }
+    */
  }
