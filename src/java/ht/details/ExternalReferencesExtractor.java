@@ -168,7 +168,7 @@ public class ExternalReferencesExtractor {
         PreparedStatement stmt;
         
         try {
-            conn.setCatalog("umls_en");
+            conn.setCatalog("umls_pt");
         
             String query = "select * from MRCONSO WHERE cui = ? AND ts = 'P' AND stt = 'PF' AND ispref = 'Y' AND lat = 'POR';";
             stmt = conn.prepareStatement(query);
