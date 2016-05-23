@@ -77,12 +77,17 @@ public class PortugueseProcessor extends ConceptProcessor {
 
             String queryToken = finalToken.toLowerCase();
             String originalString = finalToken;
-            String singularQueryToken = null;
+            StringBuilder singularQueryTokenBuilder = new StringBuilder();
             try {
-                singularQueryToken = Inflector.singularize(queryToken, "pt");
+                for(String word : queryToken.split(" ")) {
+                    singularQueryTokenBuilder.append(Inflector.singularize(word, "pt"));
+                    singularQueryTokenBuilder.append(" ");
+                }
+                singularQueryTokenBuilder.setLength(singularQueryTokenBuilder.length()-1);
             } catch (Exception ex) {
                 logger.log(Level.SEVERE, null, ex);
             }
+            String singularQueryToken = singularQueryTokenBuilder.toString();
             
             punctuationMatcher.reset(token);
             numberMatcher.reset(token);
