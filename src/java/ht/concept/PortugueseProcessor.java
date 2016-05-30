@@ -76,6 +76,9 @@ public class PortugueseProcessor extends ConceptProcessor {
             String finalToken = text.substring(initialSpan.getStart(), span.getEnd());
 
             String queryToken = finalToken.toLowerCase();
+            if(queryToken.equals("seios paranasais")){
+                System.out.println("ola");
+            }
             String originalString = finalToken;
             StringBuilder singularQueryTokenBuilder = new StringBuilder();
             try {
@@ -83,11 +86,10 @@ public class PortugueseProcessor extends ConceptProcessor {
                     singularQueryTokenBuilder.append(Inflector.singularize(word, "pt"));
                     singularQueryTokenBuilder.append(" ");
                 }
-                singularQueryTokenBuilder.setLength(singularQueryTokenBuilder.length()-1);
             } catch (Exception ex) {
                 logger.log(Level.SEVERE, null, ex);
             }
-            String singularQueryToken = singularQueryTokenBuilder.toString();
+            String singularQueryToken = singularQueryTokenBuilder.toString().trim();
             
             punctuationMatcher.reset(token);
             numberMatcher.reset(token);
