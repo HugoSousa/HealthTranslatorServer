@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.ejb.Stateless;
 import javax.servlet.ServletContext;
 import javax.sql.DataSource;
@@ -64,11 +65,13 @@ public class Processor {
     ServletContext servletContext;
 
     //private final ConcurrentHashMap<String, String> stopwordsEN = new ConcurrentHashMap<>();
+    @Resource
     private final HashSet<String> defaultSemanticTypes = new HashSet<>(Arrays.asList("T005", "T007", "T019", "T020", "T023", "T029", "T030", "T037", "T046", "T047", "T048", "T059", "T060", "T061", "T109", "T116", "T121", "T125", "T126", "T127", "T129", "T130", "T131", "T184", "T190", "T194", "T195", "T200", "T204"));
 
     //private Matcher punctuationMatcher;
     //private Matcher numberMatcher;
     //private TokenizerModel modelEN;
+    @Resource
     private final int FORWARD_THRESHOLD = 5;
     
     /*
@@ -80,6 +83,7 @@ public class Processor {
     
     private final int MAX_RETRIES = 3;
     */
+    @Resource
     private static Logger logger; 
     
     /**
@@ -116,7 +120,7 @@ public class Processor {
         //System.out.println("Starting Processing");
         SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss.SSS");
         Date date = new Date();
-        System.out.println(SDF.format(date));
+        //System.out.println(SDF.format(date));
 
         long startTimeX = System.nanoTime();
         //String decompressed = LZString.decompressFromUTF16(param.body);
@@ -132,7 +136,7 @@ public class Processor {
         
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
-        System.out.println("DURATION: " + duration + " ms for " + param.body);
+        //System.out.println("DURATION: " + duration + " ms for " + param.body);
       
        return result;     
     }

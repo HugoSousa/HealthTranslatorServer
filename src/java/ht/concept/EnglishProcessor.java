@@ -70,8 +70,6 @@ public class EnglishProcessor extends ConceptProcessor {
             
             String finalToken = text.substring(initialSpan.getStart(), span.getEnd());
             
-            
-            
             String queryToken = finalToken.toLowerCase();
             String originalString = finalToken;
             String singularQueryToken = null;

@@ -76,9 +76,6 @@ public class PortugueseProcessor extends ConceptProcessor {
             String finalToken = text.substring(initialSpan.getStart(), span.getEnd());
 
             String queryToken = finalToken.toLowerCase();
-            if(queryToken.equals("seios paranasais")){
-                System.out.println("ola");
-            }
             String originalString = finalToken;
             StringBuilder singularQueryTokenBuilder = new StringBuilder();
             try {

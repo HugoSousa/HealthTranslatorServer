@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Resource;
 import javax.servlet.ServletContext;
 import javax.sql.DataSource;
 import javax.ws.rs.Consumes;
@@ -36,6 +37,7 @@ public class Suggest {
     @Context
     ServletContext servletContext;
     
+    @Resource
     private static Logger logger;
     
     public Suggest(){

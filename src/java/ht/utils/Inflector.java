@@ -198,7 +198,7 @@ public class Inflector {
             && ( ! uncountables.contains( out.toLowerCase() ))
             && ( ! irregularSingulars.contains(out.toLowerCase() ))
            ) {
-            
+
             for ( ReplacementRule r : singulars ) {
                 if ( r.find( word ) ) {
                     out = r.replace( word );
@@ -347,6 +347,7 @@ public class Inflector {
             pluralsEN.add( 0, new ReplacementRule( "^(?i)(ox)$", "$1en" ) );
             pluralsEN.add( 0, new ReplacementRule( "(?i)(quiz)$", "$1zes" ) );
             
+            
             singularsEN = new ArrayList<>( 24 );
             singularsEN.add( 0, new ReplacementRule( "s$", "" ) );
             singularsEN.add( 0, new ReplacementRule( "(n)ews$", "$1ews" ) );
@@ -372,6 +373,8 @@ public class Inflector {
             singularsEN.add( 0, new ReplacementRule( "(virt|ind)ices$", "$1ex" ) );
             singularsEN.add( 0, new ReplacementRule( "(matr)ices$", "$1ix" ) );
             singularsEN.add( 0, new ReplacementRule( "(quiz)zes$", "$1" ) );
+            singularsEN.add( 0, new ReplacementRule( "is$", "is" ) );
+            
             
             uncountablesEN = new ArrayList<>( 11 );
             uncountablesEN.add( "equipment" );
@@ -385,6 +388,8 @@ public class Inflector {
             uncountablesEN.add( "diabetes" );
             uncountablesEN.add( "status" );
             uncountablesEN.add( "abdomen" );
+            //uncountablesEN.add( "endophthalmitis" );
+            //uncountablesEN.add( "epistaxis" );
             
             
             pluralsPT = new ArrayList<>( 20 );
